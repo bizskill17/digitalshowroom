@@ -36,6 +36,10 @@ jobs:
           set ftp:ssl-allow yes
           set ftp:ssl-force yes
           set ftp:ssl-protect-data yes
+          # Hostinger displays an IP as FTP host; its TLS certificate has a DNS name.
+          # Keep CA chain verification enabled, but do not require the IP to match CN/SAN.
+          set ssl:verify-certificate yes
+          set ssl:check-hostname no
           set ftp:passive-mode yes
           set ftp:prefer-epsv no
           set net:max-retries 2
