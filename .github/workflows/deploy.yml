@@ -56,7 +56,18 @@ jobs:
           file.chmod(0o600)
           PY
 
-      - name: Upload website and private config using passive FTPS
+      - name: Prepare private directory access restrictions
+        run: |
+          cat > /tmp/showroom-private-htaccess <<'HTACCESS'
+          <IfModule mod_authz_core.c>
+          Require all denied
+          </IfModule>
+          <IfModule !mod_authz_core.c>
+          Deny from all
+          </IfModule>
+          HTACCESS
+
+      - name: Upload website and protected config using passive FTPS
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
@@ -75,7 +86,10 @@ jobs:
           set ftp:prefer-epsv no
           set net:max-retries 2
           set net:timeout 20
-          put /tmp/showroom-db-config.php -o ./showroom-db-config.php
-          mirror --reverse --verbose --only-newer --exclude-glob .git/ --exclude-glob .github/ --exclude-glob README.md --exclude-glob node_modules/ ./ ./public_html/
+          mkdir -p ./showroom-private
+          put /tmp/showroom-private-htaccess -o ./showroom-private/.htaccess
+          put /tmp/showroom-db-config.php -o ./showroom-private/db-config.php
+          mirror --reverse --verbose --only-newer --exclude-glob .git/ --exclude-glob .github/ --exclude-glob README.md --exclude-glob node_modules/ ./ ./
+          rm ./showroom-db-config.php
           bye
           LFTP
