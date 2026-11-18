@@ -25,7 +25,38 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y lftp
 
-      - name: Upload website using passive FTPS
+      - name: Prepare private database configuration
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+
+          keys = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']
+          if any(not os.environ.get(key) for key in keys):
+              raise SystemExit('Missing a required DB_* GitHub Actions secret')
+
+          def php_value(key):
+              encoded = base64.b64encode(os.environ[key].encode('utf-8')).decode('ascii')
+              return "base64_decode('" + encoded + "')"
+
+          config = ("<?php\nreturn [\n"
+                    + "    'host' => " + php_value('DB_HOST') + ",\n"
+                    + "    'name' => " + php_value('DB_NAME') + ",\n"
+                    + "    'user' => " + php_value('DB_USER') + ",\n"
+                    + "    'password' => " + php_value('DB_PASSWORD') + ",\n"
+                    + "];\n")
+          file = Path('/tmp/showroom-db-config.php')
+          file.write_text(config, encoding='utf-8')
+          file.chmod(0o600)
+          PY
+
+      - name: Upload website and private config using passive FTPS
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
@@ -36,14 +67,15 @@ jobs:
           set ftp:ssl-allow yes
           set ftp:ssl-force yes
           set ftp:ssl-protect-data yes
-          # Hostinger displays an IP as FTP host; its TLS certificate has a DNS name.
-          # Keep CA chain verification enabled, but do not require the IP to match CN/SAN.
+          # Hostinger's supplied FTP IP does not match its certificate hostname.
+          # CA verification remains enabled; hostname checking is a temporary exception.
           set ssl:verify-certificate yes
           set ssl:check-hostname no
           set ftp:passive-mode yes
           set ftp:prefer-epsv no
           set net:max-retries 2
           set net:timeout 20
+          put /tmp/showroom-db-config.php -o ./showroom-db-config.php
           mirror --reverse --verbose --only-newer --exclude-glob .git/ --exclude-glob .github/ --exclude-glob README.md --exclude-glob node_modules/ ./ ./public_html/
           bye
           LFTP
