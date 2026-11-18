@@ -86,7 +86,7 @@ jobs:
           set ftp:prefer-epsv no
           set net:max-retries 2
           set net:timeout 20
-          mkdir -p ./showroom-private
+          mkdir -f ./showroom-private
           put /tmp/showroom-private-htaccess -o ./showroom-private/.htaccess
           put /tmp/showroom-db-config.php -o ./showroom-private/db-config.php
           mirror --reverse --verbose --only-newer --exclude-glob .git/ --exclude-glob .github/ --exclude-glob README.md --exclude-glob node_modules/ ./ ./
