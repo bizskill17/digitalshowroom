@@ -9,7 +9,7 @@ declare(strict_types=1);
  */
 function showroomDatabase(): PDO
 {
-    $configFile = dirname(__DIR__, 2) . '/showroom-db-config.php';
+    $configFile = dirname(__DIR__) . '/showroom-private/db-config.php';
 
     if (!is_file($configFile)) {
         throw new RuntimeException('Database configuration unavailable');
