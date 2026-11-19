@@ -379,3 +379,33 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
 .enquiry-delete-confirm:hover{background:#a81930!important}
 .enquiry-delete-confirm:disabled{opacity:.65;cursor:wait}
 @media(max-width:650px){.enquiry-table td.enquiry-action{min-width:100px}.enquiry-delete-dialog{padding:17px}}
+
+/* Enquiry Inbox: consistent destructive actions and professional modal. */
+.enquiry-inbox-panel .enquiry-table .enquiry-delete{
+  appearance:none;-webkit-appearance:none;display:inline-flex;justify-content:center;align-items:center;
+  min-height:34px;padding:7px 13px;border:1px solid #fec3cc!important;border-radius:8px;
+  background:#fff1f2!important;color:#ce283d!important;font:700 12px/1.2 inherit;
+  font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;box-shadow:none;
+}
+.enquiry-inbox-panel .enquiry-table .enquiry-delete:hover,
+.enquiry-inbox-panel .enquiry-table .enquiry-delete:focus-visible{
+  background:#ffe4e8!important;border-color:#ef8f9c!important;color:#a71930!important;
+}
+dialog.enquiry-delete-dialog{
+  width:min(440px,calc(100vw - 32px));max-width:440px;margin:auto;padding:25px;
+  border:1px solid #e1e9f4!important;border-radius:16px!important;background:#fff!important;
+  box-shadow:0 24px 76px rgba(8,28,58,.24)!important;color:#142c4d;
+}
+dialog.enquiry-delete-dialog::backdrop{background:rgba(9,25,49,.46)}
+.enquiry-delete-heading{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.enquiry-delete-heading h3{margin:0;font-size:20px;line-height:1.25;color:#142c4d}
+.enquiry-delete-icon{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;
+ border-radius:50%;background:#fff0f2;color:#c82b40;font-size:23px;font-weight:800}
+dialog.enquiry-delete-dialog #enquiryDeleteText{font-size:14px;line-height:1.65;color:#283c56;margin:0 0 7px}
+dialog.enquiry-delete-dialog .enquiry-delete-warning{font-size:12px;color:#b43d4b;margin:0}
+dialog.enquiry-delete-dialog .enquiry-delete-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:24px}
+dialog.enquiry-delete-dialog .enquiry-delete-actions .btn{min-height:39px;border-radius:9px;font-family:inherit;font-weight:700;padding:9px 16px}
+dialog.enquiry-delete-dialog .enquiry-delete-confirm{background:#d42b43!important;color:#fff!important;border:1px solid #d42b43!important}
+dialog.enquiry-delete-dialog .enquiry-delete-confirm:hover{background:#ae1e33!important;border-color:#ae1e33!important}
+dialog.enquiry-delete-dialog #enquiryDeleteCancel{background:#eef5ff;color:#1455af;border:1px solid #d5e5fb}
+@media(max-width:450px){dialog.enquiry-delete-dialog{padding:20px}dialog.enquiry-delete-dialog .enquiry-delete-actions .btn{flex:1}}
