@@ -574,6 +574,47 @@ function wirePlans(){
  const add=$('addPlan');if(add)add.onclick=()=>planEditor(0);
  document.querySelectorAll('[data-edit-plan]').forEach(btn=>btn.onclick=()=>planEditor(Number(btn.dataset.editPlan)));
 }
+let sellerSubscriptionData=null,sellerSubscriptionLoading=false,sellerSubscriptionError='';
+function subscriptionPrice(price,period){
+ const n=Number(price);
+ return Number.isFinite(n)&&n>0?'₹'+n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})+' / '+period:'Price to be announced';
+}
+function sellerSubscriptionPanel(){
+ if(sellerSubscriptionError)return '<section class="panel subscription-panel"><div class="notice error">'+esc(sellerSubscriptionError)+'</div>'+button('Retry','retry-subscription','primary')+'</section>';
+ if(!sellerSubscriptionData)return '<section class="panel subscription-panel"><p class="muted">Loading subscription details...</p></section>';
+ const info=sellerSubscriptionData,current=info.plans.find(p=>p.code==='free');
+ const used=Number(info.product_usage)||0,limit=Number(info.free_product_limit)||0;
+ const productAllowance=limit>0?used+' / '+limit:used+' / 0';
+ const usagePercent=limit>0?Math.min(100,Math.round(used/limit*100)):100;
+ const over=used>limit,atLimit=used>=limit;
+ const usage='<div class="subscription-overview"><div class="subscription-metric"><span>Current Plan</span><strong>'+esc(current?.name||'Free')+'</strong><small>Active</small></div>'+
+ '<div class="subscription-metric"><span>Products Used</span><strong>'+esc(productAllowance)+'</strong><div class="subscription-progress" role="progressbar" aria-label="Products used" aria-valuemin="0" aria-valuemax="'+limit+'" aria-valuenow="'+Math.min(used,limit)+'"><span style="width:'+usagePercent+'%"></span></div>'+
+ (over?'<small class="subscription-limit-warning">Existing products are retained; new products are restricted by the Free plan limit.</small>':atLimit?'<small>Product limit reached</small>':'<small>'+(limit-used)+' product slots remaining</small>')+'</div>'+
+ '<div class="subscription-metric"><span>Catalogues</span><strong>'+Number(info.catalogue_usage||0)+'</strong><small>Created catalogues</small></div></div>';
+ const names={analytics:'Analytics',whatsapp_status:'WhatsApp Status',catalogue_pdf:'Catalogue PDF',remove_branding:'Remove Showroom Branding'};
+ const plans=(info.plans||[]).map(p=>{
+  const free=p.code==='free',active=Number(p.active)===1,priceMonthly=free?'Free':subscriptionPrice(p.monthly_price,'month'),priceAnnual=free?'Free':subscriptionPrice(p.annual_price,'year');
+  const productLimit=p.product_limit===null?'Unlimited':Number(p.product_limit);
+  const catalogueLimit=p.catalogue_limit===null?'Unlimited':Number(p.catalogue_limit);
+  const enabledFeatures=Object.entries(names).filter(([key])=>p.features?.[key]===true).map(([,label])=>label);
+  return '<div class="seller-plan-card '+(free?'seller-plan-current':'')+'"><div class="seller-plan-head"><h3>'+esc(p.name)+'</h3>'+(free?'<span class="seller-plan-state current">Current Plan</span>':'<span class="seller-plan-state">Coming Soon</span>')+'</div>'+
+   (p.description?'<p class="seller-plan-description">'+esc(p.description)+'</p>':'')+
+   '<div class="seller-plan-pricing"><div><small>Monthly</small><strong>'+esc(priceMonthly)+'</strong></div><div><small>Annual</small><strong>'+esc(priceAnnual)+'</strong></div></div>'+
+   '<div class="seller-plan-features"><div><span>Products</span><strong>'+esc(productLimit)+'</strong></div><div><span>Catalogues</span><strong>'+esc(catalogueLimit)+'</strong></div>'+
+   (enabledFeatures.length?'<p>'+enabledFeatures.map(esc).join(' · ')+'</p>':'')+'</div>'+
+   '<div class="seller-plan-footer">'+(free?'<span>Currently active</span>':'<button type="button" class="btn soft" disabled>Upgrade Unavailable</button>')+'</div></div>';
+ }).join('');
+ return '<section class="panel subscription-panel seller-subscription-panel"><h2>My Subscription</h2>'+usage+
+ '<h2 class="seller-plan-title">Available Plans</h2><div class="seller-plan-grid">'+plans+'</div>'+
+ '<p class="subscription-footnote">Paid upgrades and online payments are not yet available. Your current Free plan remains unchanged.</p></section>';
+}
+async function loadSellerSubscription(){
+ if(sellerSubscriptionLoading)return;
+ sellerSubscriptionLoading=true;sellerSubscriptionError='';
+ try{sellerSubscriptionData=await api('seller-subscription');}
+ catch(e){sellerSubscriptionError=e.message||'Could not load plans';sellerSubscriptionData=null;}
+ finally{sellerSubscriptionLoading=false;if(view==='subscription'&&data?.role==='seller')render();}
+}
 function adminSettings(){return panel('Platform Settings','<p>Free Product Limit: <strong>'+Number(data.stats.free_product_limit)+'</strong></p><p class="hint">Manage limits and subscription features in Subscription Plans.</p>'+button('Manage Plans','nav-plans','primary'));}
 function render(){
  nav();
@@ -595,12 +636,8 @@ function render(){
   if(view==='status'){name='WhatsApp Status';html=statusPanel();}
   if(view==='public'){name='Public Showroom';html=panel('Share Your Shop','<div class="preview-link">'+esc(shopUrl())+'</div><p>'+button('Copy Link','copyLink')+' <a class="btn sm primary" href="'+esc(shopUrl())+'" target="_blank">Open Showroom ↗</a></p>');}
   if(view==='subscription'){
-   name='Subscription';
-   const used=data.products.length,limit=Number(data.free_product_limit)||0;
-   const percent=limit>0?Math.min(100,Math.round(used/limit*100)):100;
-   html='<section class="panel subscription-panel"><div class="subscription-grid"><div class="subscription-metric"><span>Current Plan</span><strong>Free</strong></div>'+
-    '<div class="subscription-metric"><span>Products Used</span><strong>'+used+' / '+limit+'</strong><div class="subscription-progress" role="progressbar" aria-label="Product allowance used" aria-valuemin="0" aria-valuemax="'+limit+'" aria-valuenow="'+Math.min(used,limit)+'"><span style="width:'+percent+'%"></span></div></div></div>'+
-    '<p class="subscription-footnote">Paid plans coming soon.</p></section>';
+   name='Subscription';html=sellerSubscriptionPanel();
+   if(!sellerSubscriptionData&&!sellerSubscriptionLoading&&!sellerSubscriptionError)queueMicrotask(loadSellerSubscription);
   }
  }
  title(name);$('content').innerHTML=html;wireForms();
@@ -777,6 +814,7 @@ async function doAction(action){
  if(action==='nav-settings'){navigateTo('settings');return;}
  if(action==='nav-plans'){navigateTo('plans');return;}
  if(action==='retry-plans'){plansError='';plansLoaded=false;render();return;}
+ if(action==='retry-subscription'){sellerSubscriptionData=null;sellerSubscriptionError='';render();return;}
  if(action==='import-template'){downloadProductTemplate();return;}
  if(action==='import-products'){productImportRows=[];$('content').innerHTML=productImportPanel();wireForms();return;}
  if(action==='gallery-products'){clearGalleryDrafts();$('content').innerHTML=galleryImportPanel();wireForms();return;}
