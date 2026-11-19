@@ -5,6 +5,7 @@ A multi-seller WhatsApp-first showroom application on Hostinger PHP/MySQL.
 ## Pages
 - `/` — public platform landing page
 - `/login.html` — seller login and free registration
+- `/admin-login.html` — separate admin-only login (no public admin registration)
 - `/dashboard.html` — seller dashboard or admin dashboard according to the authenticated role
 - `/shop.html?slug=your-shop` — dynamic public buyer-facing showroom
 - `/demo.html` — preserved original Bliss Bites demo
@@ -34,7 +35,7 @@ SET role = 'admin'
 WHERE email = 'YOUR_EMAIL@example.com' AND role = 'seller';
 ```
 
-5. Sign out and log back in, then open `/dashboard.html` to view the admin dashboard.
+5. Sign out and log back in at `/admin-login.html`, then open `/dashboard.html` to view the admin dashboard.
 
 For production, restrict database privileges, apply stronger registration abuse protection, add email verification/password reset, rate limiting, and audit records.
 
