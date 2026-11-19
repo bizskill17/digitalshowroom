@@ -40,6 +40,18 @@ before production deployment. Confirm both the new URL and the existing
 - Figures start from deployment of event tracking; historical showroom views cannot be reconstructed. Customer names, mobile numbers and IP addresses are not added to the analytics event table.
 - `ds_analytics_events` is included in the existing CLI-only database backup process.
 
+## Phase 2 — Seller Share Kit
+
+The Seller Dashboard includes **Share Kit** immediately after Analytics. It uses the logged-in shop's saved name, logo, colour, contact details, and friendly public URL.
+
+- **Shop QR Code:** preview plus 1000 × 1000 PNG download
+- **QR Poster:** portrait A4-style preview, 2480 × 3508 PNG, and a single-page A4 PDF export
+- **Digital Business Card:** horizontal preview and 1200 × 675 PNG download
+- Shop link can also be copied from the module. Downloads are generated on demand in the browser; nothing is uploaded or stored back to the database.
+- QR generation uses the locally hosted MIT-licensed QRCodeJS library under `assets/vendor`. This avoids dependence on an external QR-generation service.
+- Seller logo images must be same-origin or supplied by a source with suitable CORS permissions to appear in downloadable Canvas images; other shop branding still renders if a logo cannot be fetched.
+- Existing shop and product records are not modified by Share Kit. Test the QR codes by scanning the downloaded images and the printed poster.
+
 ## Functional features
 - Seller registration and login with hashed passwords, session authentication and CSRF checks
 - One shop per registered seller; public link using a unique slug
