@@ -52,3 +52,6 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
 .shop-photo-thumb{flex:0 0 44px;width:44px;height:44px;padding:2px;background:white;border:2px solid transparent;border-radius:8px}
 .shop-photo-thumb.selected{border-color:var(--shop-accent,#e83f7e)}
 .shop-photo-thumb img{height:100%;width:100%;object-fit:cover;border-radius:5px}
+
+/* Clearly indicate that a bulk import is unavailable until CSV validation succeeds. */
+#importSave:disabled{opacity:.48;cursor:not-allowed;box-shadow:none;filter:grayscale(.2)}
