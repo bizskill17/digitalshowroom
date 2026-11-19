@@ -336,3 +336,11 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
  .sidebar nav::-webkit-scrollbar{display:none}
  .sidebar-account{flex:0 0 auto;margin-top:0;padding-bottom:8px}
 }
+
+/* Share Kit: independently selectable poster/card pictures. */
+.share-kit-image-controls{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+.share-kit-image-controls .btn{flex:1 1 120px;min-height:36px;display:inline-flex;align-items:center;justify-content:center;margin:0}
+.share-kit-image-controls .share-kit-select{cursor:pointer}
+.share-kit-image-controls .btn:disabled{opacity:.45;cursor:not-allowed}
+.share-kit-actions{margin-top:auto}
+@media(max-width:650px){.share-kit-image-controls{gap:7px}.share-kit-image-controls .btn{flex:1 1 120px}}
