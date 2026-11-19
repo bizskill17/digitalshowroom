@@ -98,3 +98,9 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
 .gallery-bulk-notice{font-size:13px;margin-top:8px;color:#a02424}
 @media(max-width:850px){.gallery-bulk-card>img{width:95px;height:112px}}
 @media(max-width:450px){.gallery-bulk-card>img{width:78px;height:96px}}
+
+/* Match gallery photo picker to the full-width Import Products file field. */
+.gallery-file-picker{width:100%;min-height:41px;border:1px solid #b9cdea;border-radius:9px;padding:5px 10px;gap:7px;background:#fff}
+.gallery-file-button{min-height:26px;padding:4px 10px;border:1px solid #879ab1;border-radius:4px;background:#f5f7fa;color:#142c4f;font-size:13px;font-weight:500;box-shadow:none}
+.gallery-file-button:hover{background:#e9f0f9}
+#galleryFileCount{font-size:13px;color:#253650}
