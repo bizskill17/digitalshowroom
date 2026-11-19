@@ -143,4 +143,18 @@ function generateStatus(){
  });
 }
 $('logout').onclick=async()=>{try{await api('logout',{});}finally{location.href='/login.html';}};
-api('me').then(async d=>{if(!d.user){location.href='/login.html';return;}csrf=d.csrf;user=d.user;updateSidebarAccount();await refresh();}).catch(()=>{location.href='/login.html';});
+async function initializeDashboard(){
+ try{
+  const d=await api('me');
+  if(!d.user){location.href='/login.html';return;}
+  csrf=d.csrf;user=d.user;updateSidebarAccount();
+  await refresh();
+ }catch(error){
+  const content=$('content');
+  if(content)content.innerHTML='<div class="notice error"><b>Dashboard could not load.</b><p id="dashboardLoadError"></p><button type="button" class="btn primary" id="retryDashboard">Retry</button></div>';
+  const message=$('dashboardLoadError');if(message)message.textContent=error?.message||'Unable to load account data.';
+  const retry=$('retryDashboard');if(retry)retry.onclick=initializeDashboard;
+  console.error('Dashboard initialization failed',error);
+ }
+}
+initializeDashboard();
