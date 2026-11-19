@@ -68,8 +68,6 @@ try {
             $sql = '-- Digital Showroom: ' . $table . "\n";
             $sql .= $ddl[$table] . ";\n\n";
             $stmt = $db->query('SELECT * FROM `' . $table . '`');
-            $columns = array_map(static fn(array $c): string => '`' . str_replace('`','``',$c['name']) . '`',
-                $stmt->getColumnMeta(0) ? [] : []);
             // Column names come from the result set, not user input.
             $rows = 0;
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -125,6 +123,21 @@ try {
     if ($verify->locateName('manifest.json') === false || $verify->numFiles < count($tables) + 1) {
         $verify->close();
         throw new RuntimeException('Backup archive is incomplete.');
+    }
+    for ($index = 0; $index < $verify->numFiles; $index++) {
+        $stream = $verify->getStream($verify->getNameIndex($index));
+        if ($stream === false) {
+            $verify->close();
+            throw new RuntimeException('Backup entry cannot be read.');
+        }
+        while (!feof($stream)) {
+            if (fread($stream, 1024 * 1024) === false) {
+                fclose($stream);
+                $verify->close();
+                throw new RuntimeException('Backup entry is unreadable.');
+            }
+        }
+        fclose($stream);
     }
     $verify->close();
     echo 'Backup archive created: ' . $target . PHP_EOL;
