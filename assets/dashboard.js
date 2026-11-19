@@ -215,11 +215,14 @@ function shareKitPanel(){
   ['poster','QR Poster','sharePosterPreview','Download Poster PNG','poster'],
   ['card','Digital Business Card','shareCardPreview','Download Card','card']
  ];
- const tiles=cards.map(([kind,title,preview,label,download])=>
-  '<div class="share-kit-tile"><h3>'+title+'</h3><div class="share-kit-visual share-kit-'+kind+'" id="'+preview+'" aria-label="'+title+' preview"><span>Preparing preview...</span></div><div class="share-kit-actions">'+
-  '<button class="btn sm primary" type="button" data-share-download="'+download+'" disabled>'+label+'</button>'+
-  (kind==='poster'?'<button class="btn sm soft" type="button" data-share-download="poster-pdf" disabled>Download PDF</button>':'')+'</div></div>'
- ).join('');
+ const tiles=cards.map(([kind,title,preview,label,download])=>{
+  const images=kind==='qr'?'':'<div class="share-kit-image-controls"><label class="btn sm soft share-kit-select" for="shareImage_'+kind+'">Choose Image</label>'+
+   '<input type="file" id="shareImage_'+kind+'" accept="image/jpeg,image/png,image/webp" hidden>'+
+   '<button type="button" class="btn sm danger" id="shareRemove_'+kind+'">Remove Image</button></div>';
+  return '<div class="share-kit-tile"><h3>'+title+'</h3><div class="share-kit-visual share-kit-'+kind+'" id="'+preview+'" aria-label="'+title+' preview"><span>Preparing preview...</span></div>'+
+  images+'<div class="share-kit-actions"><button class="btn sm primary" type="button" data-share-download="'+download+'" disabled>'+label+'</button>'+
+  (kind==='poster'?'<button class="btn sm soft" type="button" data-share-download="poster-pdf" disabled>Download PDF</button>':'')+'</div></div>';
+ }).join('');
  return '<section class="panel seller-panel share-kit-panel"><div class="share-kit-link"><span id="shareKitShopUrl"></span><button type="button" class="btn sm soft" id="shareCopyLink">Copy Shop Link</button></div>'+
  '<div id="shareKitError" class="notice error" role="alert" hidden></div><div class="share-kit-grid">'+tiles+'</div></section>';
 }
@@ -517,7 +520,7 @@ function render(){
   }
  }
  title(name);$('content').innerHTML=html;wireForms();
- if(view==='sharekit'&&window.ShareKit)window.ShareKit.init(data.shop,shopUrl());
+ if(view==='sharekit'&&window.ShareKit)window.ShareKit.init(data.shop,shopUrl(),csrf);
  // Actions are delegated below so buttons added after render() remain clickable.
 }
 async function refresh(){data=await api('dashboard');if(!(data.role==='admin'?adminViews:sellerViews).includes(view))view='dashboard';render();}
