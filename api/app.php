@@ -154,7 +154,7 @@ try{
   foreach($found as $p){if($p['price']===null)$hasUnknown=true;else $total+=(float)$p['price']*$wanted[(int)$p['id']];}
   $totalValue=$hasUnknown?null:number_format($total,2,'.','');
   $name=trim((string)($d['customer_name']??''));
-  $mobile=preg_replace('/\\D/','',(string)($d['customer_mobile']??''));
+  $mobile=preg_replace('/\D/','',(string)($d['customer_mobile']??''));
   if(mb_strlen($name)>120||strlen($mobile)>15)respond(['error'=>'Invalid customer contact details'],422);
   if($mobile!==''&&(strlen($mobile)<10||strlen($mobile)>15))respond(['error'=>'Enter a valid mobile number'],422);
   $db->beginTransaction();
