@@ -163,10 +163,9 @@ function analyticsPanel(){
   ].map(([name,count])=>'<div class="analytics-metric"><span>'+name+'</span><strong>'+Number(count)+'</strong></div>').join('')+'</div>';
   const views=(a.top_views||[]).map((p,i)=>'<tr><td>'+String(i+1)+'</td><td>'+esc(p.product_name)+'</td><td>'+Number(p.views)+'</td></tr>').join('');
   const enquiries=(a.top_enquiries||[]).map((p,i)=>'<tr><td>'+String(i+1)+'</td><td>'+esc(p.product_name)+'</td><td>'+Number(p.enquiries)+'</td></tr>').join('');
-  body+='<div class="analytics-tables"><div><h3>Most-Viewed Products</h3>'+wrapTable(['#','Product','Views'],views)+'</div><div><h3>Most-Enquired Products</h3>'+wrapTable(['#','Product','Enquiries'],enquiries)+'</div></div>';
+  body+='<div class="analytics-tables"><div><h3>Most-Viewed Products</h3>'+wrapTable(['SL No.','Product','Views'],views)+'</div><div><h3>Most-Enquired Products</h3>'+wrapTable(['SL No.','Product','Enquiries'],enquiries)+'</div></div>';
   const series=a.trend||[];
   if(series.length)body+='<div class="analytics-trend"><h3>Daily Showroom Views</h3>'+wrapTable(['Date','Views','WhatsApp Clicks'],series.map(p=>'<tr><td>'+esc(formatEnquiryDate(p.date))+'</td><td>'+Number(p.visit||0)+'</td><td>'+Number(p.whatsapp_click||0)+'</td></tr>').join(''))+'</div>';
-  body+='<p class="analytics-footnote">Views are recorded per browser session. Product views count when products appear on screen. WhatsApp clicks indicate an initiated action, not a delivered message. Analytics started when tracking was enabled.</p>';
  }
  return '<section class="panel seller-panel analytics-panel">'+filter+body+'</section>';
 }
