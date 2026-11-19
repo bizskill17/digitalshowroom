@@ -60,8 +60,8 @@ try {
     $email=strtolower(trim((string)($input['email']??'')));
     $password=(string)($input['password']??'');
     if ($name==='' || mb_strlen($name)>150 || !filter_var($email,FILTER_VALIDATE_EMAIL) || strlen($email)>190 ||
-        strlen($password)<12 || strlen($password)>200) {
-        reply(['error'=>'Enter a name, valid email, and password of at least 12 characters.'],422);
+        strlen($password)<4 || strlen($password)>200) {
+        reply(['error'=>'Enter a name, valid email, and password of at least 4 characters.'],422);
     }
     // Lock prevents concurrent attempts from creating more than one initial admin.
     if ((int)$db->query("SELECT GET_LOCK('digitalshowroom_first_admin',10)")->fetchColumn()!==1) {
