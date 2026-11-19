@@ -229,25 +229,9 @@ function categoryPanel(){
 function profilePanel(){
  const s=data.shop;
  const colourOptions=[['#E83F7E','Pink'],['#1D4ED8','Blue'],['#0F766E','Teal'],['#6D28D9','Purple'],['#9A3412','Terracotta'],['#334155','Slate']];
- const themes=[['classic','Classic'],['modern','Modern'],['minimal','Minimal']];
- const current=themes.some(([id])=>id===s.theme_style)?s.theme_style:'classic';
- const themeChoices=themes.map(([id,label])=>'<label class="theme-option"><input type="radio" name="shopThemeStyle" value="'+id+'" '+(current===id?'checked':'')+'><span class="theme-option-name">'+label+'</span><span class="theme-option-mini theme-mini-'+id+'" aria-hidden="true"><i></i><b></b><em></em></span></label>').join('');
  return sellerPanel('<form id="shopForm"><div class="form-grid">'+field('Your Name *','accountName',user?.name||'','text','required maxlength="150"')+field('Shop Name *','shopName',s.name,'text','required maxlength="150"')+field('WhatsApp Number *','shopPhone',s.phone,'tel','required maxlength="15"')+field('Tagline','shopTag',s.tagline,'text','maxlength="255"')+field('Shop Address','shopAddress',s.address,'text','maxlength="255"')+
  '<div class="field"><label for="shopThemeColor">Shop Colour</label><select id="shopThemeColor">'+colourOptions.map(([value,label])=>'<option value="'+value+'" '+((s.theme_color||'#E83F7E').toUpperCase()===value?'selected':'')+'>'+label+'</option>').join('')+'</select></div></div>'+
- '<div class="field"><label>Showroom Theme</label><div class="theme-options" role="radiogroup" aria-label="Showroom Theme">'+themeChoices+'</div></div>'+
- '<div class="theme-preview" id="shopThemePreview"><div class="theme-preview-head"><strong id="themePreviewName"></strong><small id="themePreviewTagline"></small></div><div class="theme-preview-content"><div class="theme-preview-item"><div class="theme-preview-photo"></div><b>Sample Product</b><span>₹120.00</span></div><div class="theme-preview-item"><div class="theme-preview-photo"></div><b>Sample Product</b><span>₹180.00</span></div></div></div>'+
  '<input type="hidden" id="shopLogo" value="'+esc(s.logo_url||'')+'"><div class="field"><label for="shopLogoFile">Upload Shop Logo (JPG, PNG, WebP)</label><input type="file" id="shopLogoFile" accept="image/jpeg,image/png,image/webp"></div><button class="btn primary" type="submit">Save Profile</button></form>');
-}
-function previewShopTheme(){
- const preview=$('shopThemePreview');if(!preview)return;
- const selected=document.querySelector('input[name="shopThemeStyle"]:checked');
- const style=selected?.value||'classic';
- const color=$('shopThemeColor')?.value||'#E83F7E';
- preview.dataset.theme=style;
- preview.style.setProperty('--preview-accent',color);
- $('themePreviewName').textContent=$('shopName')?.value||'Your Shop';
- $('themePreviewTagline').textContent=$('shopTag')?.value||'';
- document.querySelectorAll('.theme-option').forEach(option=>option.classList.toggle('selected',!!option.querySelector('input:checked')));
 }
 const productImportColumns=['Product Name','Category','Price','Unit','Description','Display Order','Visible'];
 let productImportRows=[];
@@ -605,13 +589,6 @@ async function uploadProductPhotos(input){
  }finally{input.value='';input.disabled=false;if(save)save.disabled=false;}
 }
 function wireForms(){
- if(view==='profile'){
-  for(const id of ['shopThemeColor','shopName','shopTag']){
-   const el=$(id);if(el)el.addEventListener(id==='shopThemeColor'?'change':'input',previewShopTheme);
-  }
-  document.querySelectorAll('input[name="shopThemeStyle"]').forEach(el=>el.addEventListener('change',previewShopTheme));
-  previewShopTheme();
- }
  if(view==='analytics')wireAnalytics();
 
  if(view==='enquiries')wireEnquiryFilters();
@@ -634,7 +611,7 @@ function wireForms(){
   renderProductGallery();
   uploader.onchange=()=>uploadProductPhotos(uploader);
  }
- {const f=$('shopForm');if(f)f.onsubmit=async e=>{e.preventDefault();const btn=f.querySelector('[type="submit"]');btn.disabled=true;try{const result=await api('shop',{owner_name:$('accountName').value.trim(),name:$('shopName').value,phone:$('shopPhone').value,tagline:$('shopTag').value,address:$('shopAddress').value,logo_url:$('shopLogo').value,theme_color:$('shopThemeColor').value,theme_style:document.querySelector('input[name="shopThemeStyle"]:checked')?.value||'classic'});user.name=result.owner_name;updateSidebarAccount();await refresh();flash('Profile saved successfully');}catch(err){flash(err.message,true)}finally{btn.disabled=false;}};}
+ {const f=$('shopForm');if(f)f.onsubmit=async e=>{e.preventDefault();const btn=f.querySelector('[type="submit"]');btn.disabled=true;try{const result=await api('shop',{owner_name:$('accountName').value.trim(),name:$('shopName').value,phone:$('shopPhone').value,tagline:$('shopTag').value,address:$('shopAddress').value,logo_url:$('shopLogo').value,theme_color:$('shopThemeColor').value});user.name=result.owner_name;updateSidebarAccount();await refresh();flash('Profile saved successfully');}catch(err){flash(err.message,true)}finally{btn.disabled=false;}};}
  {const f=$('productForm');if(f)f.onsubmit=e=>{e.preventDefault();post('product-save',{id:f.dataset.id?+f.dataset.id:0,name:$('productName').value,category_id:$('productCat').value,description:$('productDesc').value,price:$('productPrice').value,unit:$('productUnit').value.trim(),display_order:$('productOrder').value,image_url:$('productImage').value,images:[...pendingProductPhotos],active:$('productActive').checked},'Product saved');};}
  {const f=$('categoryForm');if(f)f.onsubmit=async e=>{
   e.preventDefault();
