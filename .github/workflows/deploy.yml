@@ -33,6 +33,17 @@ jobs:
           node --check assets/dashboard.js
           node --check assets/shop.js
 
+      - name: Verify deployment does not contain persistent data or secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -E '(^showroom-private/|^uploads/.*\.(jpg|jpeg|png|webp|gif|svg)$|(^|/)db-config\.php$|(^|/)admin-setup-config\.php$|\.sql(\.gz)?$)' ; then
+            echo "::error::Private configuration, uploaded media or database dumps must never be committed."
+            exit 1
+          fi
+          test -f uploads/.htaccess
+          test -f api/db.php
+
       - name: Install FTPS client
         run: |
           sudo apt-get update -qq
@@ -113,9 +124,22 @@ jobs:
           put /tmp/showroom-private-htaccess -o ./showroom-private/.htaccess
           put /tmp/showroom-db-config.php -o ./showroom-private/db-config.php
           put /tmp/showroom-admin-setup-config.php -o ./showroom-private/admin-setup-config.php
-          mirror --reverse --verbose --only-newer --exclude-glob .git/ --exclude-glob .github/ --exclude-glob README.md --exclude-glob node_modules/ ./ ./
+          # Non-destructive deploy: do not use --delete; shop uploads and private config persist on the server.
+          mirror --reverse --verbose --only-newer --exclude-glob .git/ --exclude-glob .github/ --exclude-glob .gitignore --exclude-glob README.md --exclude-glob node_modules/ ./ ./
           # Always replace the dashboard assets; FTP timestamps can otherwise leave older code in place.
           put assets/dashboard.js -o ./assets/dashboard.js
           put dashboard.html -o ./dashboard.html
           bye
           LFTP
+
+      - name: Verify protected database config is inaccessible from the web
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in showroom-private/db-config.php showroom-private/admin-setup-config.php; do
+            status=$(curl --silent --show-error --max-time 15 --output /dev/null --write-out '%{http_code}' "https://showroom.bizskilledu.com/$path")
+            case "$status" in
+              401|403|404) echo "Protected: /$path (HTTP $status)" ;;
+              *) echo "::error::Private config /$path is not confirmed blocked (HTTP $status). Investigate hosting access rules."; exit 1 ;;
+            esac
+          done
