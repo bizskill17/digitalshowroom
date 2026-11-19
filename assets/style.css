@@ -298,36 +298,6 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
 .shop-view[data-shop-theme=minimal] .shop-cart{border-top:1px solid #dfe5ec;box-shadow:none}
 @media(max-width:650px){.theme-options{gap:7px}.theme-option{padding:8px}.theme-option-mini{height:46px;padding:6px}.shop-view[data-shop-theme=modern] .shop-header{width:calc(100% - 20px);margin:10px auto 0;border-radius:16px;padding:22px 5%}}
 
-/* Phase 2 seller Share Kit. No styles leak into Admin or public storefronts. */
-.share-kit-link{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;margin-bottom:16px;border:1px solid #dce7f5;background:#f2f7ff;border-radius:10px;color:#1554a8;font-size:13px;overflow-wrap:anywhere}
-.share-kit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
-.share-kit-tile{border:1px solid #dce7f5;border-radius:13px;padding:14px;min-width:0;background:white}
-.share-kit-tile h3{font-size:16px;margin:0 0 13px}
-.share-kit-visual{display:grid;place-items:center;overflow:hidden;background:#f5f8fd;border-radius:10px;min-height:190px;padding:12px;border:1px solid #e7eef8}
-.share-kit-visual img{display:block;max-width:100%;height:auto;max-height:260px;object-fit:contain;box-shadow:0 2px 15px #102c5415}
-.share-kit-qr img{width:min(100%,200px);aspect-ratio:1}
-.share-kit-poster img{max-height:260px}
-.share-kit-card img{width:100%;max-height:210px}
-.share-kit-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.share-kit-actions button{flex:1 1 auto}
-.share-kit-actions button:disabled{opacity:.5;cursor:not-allowed}
-@media(max-width:1000px){.share-kit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:650px){.share-kit-grid{grid-template-columns:1fr}.share-kit-link{flex-wrap:wrap}.share-kit-link button{width:100%}.share-kit-visual{min-height:160px}}
-
-/* Share Kit: consistent card heights and aligned download actions. */
-.share-kit-grid{align-items:stretch}
-.share-kit-tile{display:flex;flex-direction:column;height:100%;min-height:385px}
-.share-kit-tile h3{flex:0 0 auto}
-.share-kit-visual{height:285px;min-height:0;flex:0 0 auto;padding:10px}
-.share-kit-visual img{max-height:100%;max-width:100%;width:auto;height:auto;object-fit:contain}
-.share-kit-qr img{width:184px;height:184px;max-width:100%}
-.share-kit-poster img{max-height:263px;width:auto}
-.share-kit-card{padding:6px}
-.share-kit-card img{width:100%;max-width:100%;height:auto;max-height:none;object-fit:contain}
-.share-kit-actions{margin-top:auto;padding-top:14px;min-height:52px;align-items:stretch}
-.share-kit-actions button{min-height:38px;white-space:nowrap}
-@media(max-width:1100px){.share-kit-tile{min-height:370px}.share-kit-visual{height:255px}.share-kit-poster img{max-height:235px}.share-kit-qr img{width:172px;height:172px}}
-@media(max-width:650px){.share-kit-tile{min-height:0}.share-kit-visual{height:260px}.share-kit-qr img{width:188px;height:188px}.share-kit-poster img{max-height:240px}.share-kit-actions{margin-top:0}}
 /* Desktop sidebar: keep account and Log out visible, scroll menu only when needed. */
 @media(min-width:801px){
  .sidebar{overflow:hidden;display:flex;flex-direction:column;height:100dvh;min-height:0}
@@ -337,13 +307,6 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
  .sidebar-account{flex:0 0 auto;margin-top:0;padding-bottom:8px}
 }
 
-/* Share Kit: independently selectable poster/card pictures. */
-.share-kit-image-controls{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
-.share-kit-image-controls .btn{flex:1 1 120px;min-height:36px;display:inline-flex;align-items:center;justify-content:center;margin:0}
-.share-kit-image-controls .share-kit-select{cursor:pointer}
-.share-kit-image-controls .btn:disabled{opacity:.45;cursor:not-allowed}
-.share-kit-actions{margin-top:auto}
-@media(max-width:650px){.share-kit-image-controls{gap:7px}.share-kit-image-controls .btn{flex:1 1 120px}}
 
 /* Fixed desktop navigation matching the approved compact sidebar mockup. */
 .sidebar-icon{width:19px;height:19px;flex:0 0 19px;display:block}
