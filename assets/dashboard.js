@@ -369,10 +369,10 @@ async function saveGalleryDrafts(){
 function productForm(id){
  const p=data.products.find(v=>v.id==id)||{name:'',description:'',category_id:'',price:'',image_url:'',active:1};
  const cats='<option value="">No Category</option>'+data.categories.map(c=>'<option value="'+c.id+'" '+(c.id==p.category_id?'selected':'')+'>'+esc(c.name)+'</option>').join('');
- const photos='<input type="hidden" id="productImage" value="'+esc(p.image_url||'')+'"><div class="field product-photo-field"><label for="productImageFile">Product Photos (up to 6)</label><input type="file" id="productImageFile" accept="image/jpeg,image/png,image/webp" multiple><div id="productGalleryMessage" class="hint" role="status" aria-live="polite">Select photos from your gallery. The first is the main photo.</div><div id="productGallery" class="product-gallery" aria-label="Selected product photos"></div></div>';
+ const photos='<input type="hidden" id="productImage" value="'+esc(p.image_url||'')+'"><div class="field product-photo-field"><label for="productImageFile">Product Photos (up to 6)</label><input type="file" id="productImageFile" accept="image/jpeg,image/png,image/webp" multiple><div id="productGalleryMessage" class="hint" role="status" aria-live="polite"></div><div id="productGallery" class="product-gallery" aria-label="Selected product photos"></div></div>';
  const basic='<div class="product-quick-fields">'+field('Product Name *','productName',p.name,'text','required maxlength="180"')+field('Price (₹) — blank means on request','productPrice',p.price===null?'':p.price,'text','inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" title="Up to 2 decimal places"')+'</div>';
  const extra='<details class="product-more" '+(id?'open':'')+'><summary>More Product Details</summary><div class="form-grid"><div class="field"><label for="productCat">Category</label><select id="productCat">'+cats+'</select></div>'+field('Unit','productUnit',p.unit||'Piece','text','required maxlength="30" list="productUnitOptions"')+field('Display Order','productOrder',p.display_order??0,'text','inputmode="numeric" pattern="[0-9]+" maxlength="6" required')+'</div><div class="field"><label for="productDesc">Description</label><textarea id="productDesc" maxlength="2500">'+esc(p.description||'')+'</textarea></div></details>';
- return panel(id?'Edit Product':'Add Product','<form id="productForm" class="product-quick-form" data-id="'+(id||'')+'">'+photos+basic+extra+'<datalist id="productUnitOptions"><option value="Piece"><option value="Kg"><option value="Gram"><option value="Box"><option value="Pack"><option value="Set"><option value="Litre"></datalist><div class="field"><label><input type="checkbox" id="productActive" '+(+p.active?'checked':'')+'> Visible in public showroom</label></div><div class="product-save-row"><button type="submit" class="btn primary">Save Product</button> '+button('Cancel','cancel')+'</div></form>');
+ return panel(id?'Edit Product':'Add Product','<form id="productForm" class="product-quick-form" data-id="'+(id||'')+'">'+photos+basic+extra+'<datalist id="productUnitOptions"><option value="Piece"><option value="Kg"><option value="Gram"><option value="Box"><option value="Pack"><option value="Set"><option value="Litre"></datalist><label class="product-visibility"><input type="checkbox" id="productActive" '+(+p.active?'checked':'')+'><span>Visible in public showroom</span></label><div class="product-save-row"><button type="submit" class="btn primary">Save Product</button> '+button('Cancel','cancel')+'</div></form>');
 }
 function categoryForm(id){
  const c=data.categories.find(v=>v.id==id)||{name:''};return panel(id?'Edit Category':'Add Category','<form id="categoryForm" data-id="'+(id||'')+'">'+field('Category Name *','categoryName',c.name,'text','required maxlength="120"')+'<button type="submit" class="btn primary">Save Category</button> '+button('Cancel','cancel')+'</form>');
@@ -382,8 +382,13 @@ function cataloguesPanel(){
  return sellerPanel(wrapTable(['Catalogue','Products','Actions'],rows),button('＋ Add Catalogue','new-catalogue','primary'));
 }
 function catalogueForm(id){
- const c=data.catalogues.find(v=>v.id==id)||{name:''};const chosen=data.catalogue_products.filter(v=>v.catalogue_id==id).map(v=>+v.product_id);
- return panel(id?'Edit Catalogue':'Add Catalogue','<form id="catalogueForm" data-id="'+(id||'')+'">'+field('Catalogue Name *','catalogueName',c.name,'text','required maxlength="130"')+'<div class="field"><label>Select Products</label><div class="panel" style="max-height:320px;overflow:auto">'+(data.products.map(p=>'<label style="display:block;margin-bottom:10px"><input type="checkbox" name="catalogueProduct" value="'+p.id+'" '+(chosen.includes(+p.id)?'checked':'')+'> '+esc(p.name)+'</label>').join('')||'Add products first')+'</div></div><button class="btn primary" type="submit">Save Catalogue</button> '+button('Cancel','cancel')+'</form>');
+ const c=data.catalogues.find(v=>v.id==id)||{name:''};
+ const chosen=data.catalogue_products.filter(v=>v.catalogue_id==id).map(v=>+v.product_id);
+ const choices=data.products.map(p=>'<label class="catalogue-product-choice"><input type="checkbox" name="catalogueProduct" value="'+p.id+'" '+(chosen.includes(+p.id)?'checked':'')+'><span>'+esc(p.name)+'</span></label>').join('');
+ return panel(id?'Edit Catalogue':'Add Catalogue','<form id="catalogueForm" class="catalogue-form" data-id="'+(id||'')+'">'+
+ field('Catalogue Name *','catalogueName',c.name,'text','required maxlength="130"')+
+ '<div class="field"><label>Select Products</label><div class="catalogue-product-list">'+(choices||'<p class="muted">Add products first</p>')+'</div></div>'+
+ '<div class="catalogue-actions"><button class="btn primary" type="submit">Save Catalogue</button> '+button('Cancel','cancel')+'</div></form>');
 }
 function statusPanel(){
  return sellerPanel('<div class="form-grid">'+data.products.filter(p=>+p.active).map(p=>'<label class="feature"><input type="checkbox" class="statusPick" value="'+p.id+'"> '+esc(p.name)+'</label>').join('')+'</div><p style="margin-top:18px">'+button('Generate Selected Images','generate-status','primary')+'</p><div id="statusOutput"></div>');
@@ -414,7 +419,14 @@ function render(){
   if(view==='enquiries'){name='Enquiry Inbox';html=enquiryPanel();if(!enquiryLoaded&&!enquiryLoading&&!enquiryError)queueMicrotask(loadEnquiries);}
   if(view==='status'){name='WhatsApp Status';html=statusPanel();}
   if(view==='public'){name='Public Showroom';html=panel('Share Your Shop','<div class="preview-link">'+esc(shopUrl())+'</div><p>'+button('Copy Link','copyLink')+' <a class="btn sm primary" href="'+esc(shopUrl())+'" target="_blank">Open Showroom ↗</a></p>');}
-  if(view==='subscription'){name='Subscription';html=panel('Your Plan','<div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+stat('Current Plan','Free','green')+stat('Products Used',data.products.length+' / '+data.free_product_limit,'blue')+'</div><p>Paid subscription plans and Razorpay integration are planned and are not yet enabled.</p>');}
+  if(view==='subscription'){
+   name='Subscription';
+   const used=data.products.length,limit=Number(data.free_product_limit)||0;
+   const percent=limit>0?Math.min(100,Math.round(used/limit*100)):100;
+   html='<section class="panel subscription-panel"><div class="subscription-grid"><div class="subscription-metric"><span>Current Plan</span><strong>Free</strong></div>'+
+    '<div class="subscription-metric"><span>Products Used</span><strong>'+used+' / '+limit+'</strong><div class="subscription-progress" role="progressbar" aria-label="Product allowance used" aria-valuemin="0" aria-valuemax="'+limit+'" aria-valuenow="'+Math.min(used,limit)+'"><span style="width:'+percent+'%"></span></div></div></div>'+
+    '<p class="subscription-footnote">Paid plans coming soon.</p></section>';
+  }
  }
  title(name);$('content').innerHTML=html;wireForms();
  // Actions are delegated below so buttons added after render() remain clickable.
