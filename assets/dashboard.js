@@ -72,7 +72,7 @@ function enquiryTableRows(){
  $('enquiryResultCount').textContent=filtered.length+' of '+enquiryRecords.length+' enquiries';
  const tbody=$('enquiryTableBody');
  if(!tbody)return;
- if(!filtered.length){tbody.innerHTML='<tr><td colspan="7" class="placeholder">No matching enquiries.</td></tr>';return;}
+ if(!filtered.length){tbody.innerHTML='<tr><td colspan="6" class="placeholder">No matching enquiries.</td></tr>';return;}
  tbody.innerHTML=filtered.map(e=>{
   const ref='ENQ-'+String(e.id).padStart(5,'0');
   const customer=String(e.customer_name||'').trim(),mobile=String(e.customer_mobile||'').replace(/[^0-9]/g,'');
@@ -82,39 +82,9 @@ function enquiryTableRows(){
   const n=(e.items||[]).length;
   const details='<button type="button" class="enquiry-detail-link" data-enquiry-view="'+Number(e.id)+'">View '+n+' item'+(n===1?'':'s')+'</button>';
   const total=e.estimated_total===null?'On request':'₹'+Number(e.estimated_total).toFixed(2);
-  return '<tr><td class="enquiry-ref">'+ref+'</td><td class="enquiry-date">'+esc(formatEnquiryDate(e.created_at))+'</td><td>'+(e.kind==='quotation'?'Quotation':'Order')+'</td><td>'+details+'</td><td class="enquiry-amount">'+total+'</td><td>'+contact+'</td><td class="enquiry-action"><button type="button" class="btn sm enquiry-delete" data-enquiry-delete="'+Number(e.id)+'">Delete</button></td></tr>';
+  return '<tr><td class="enquiry-ref">'+ref+'</td><td class="enquiry-date">'+esc(formatEnquiryDate(e.created_at))+'</td><td>'+(e.kind==='quotation'?'Quotation':'Order')+'</td><td>'+details+'</td><td class="enquiry-amount">'+total+'</td><td>'+contact+'</td></tr>';
  }).join('');
  tbody.querySelectorAll('[data-enquiry-view]').forEach(button=>button.onclick=()=>showEnquiryDetails(Number(button.dataset.enquiryView)));
- tbody.querySelectorAll('[data-enquiry-delete]').forEach(button=>button.onclick=()=>confirmEnquiryDelete(Number(button.dataset.enquiryDelete)));
-}
-let pendingDeleteEnquiryId=0;
-function confirmEnquiryDelete(id){
- const enquiry=enquiryRecords.find(e=>Number(e.id)===id);
- const dialog=$('enquiryDeleteDialog');if(!enquiry||!dialog)return;
- pendingDeleteEnquiryId=id;
- $('enquiryDeleteText').textContent='Are you sure you want to delete ENQ-'+String(id).padStart(5,'0')+'?';
- const confirmButton=$('enquiryDeleteConfirm');
- confirmButton.disabled=false;confirmButton.textContent='Delete Enquiry';
- confirmButton.onclick=deleteSelectedEnquiry;
- if(typeof dialog.showModal==='function')dialog.showModal();
- else dialog.setAttribute('open','');
-}
-async function deleteSelectedEnquiry(){
- const id=pendingDeleteEnquiryId,dialog=$('enquiryDeleteDialog'),btn=$('enquiryDeleteConfirm');
- if(!id||!btn||btn.disabled)return;
- btn.disabled=true;btn.textContent='Deleting...';
- try{
-  await api('enquiry-delete',{id});
-  enquiryRecords=enquiryRecords.filter(e=>Number(e.id)!==id);
-  pendingDeleteEnquiryId=0;
-  if(dialog){if(typeof dialog.close==='function')dialog.close();else dialog.removeAttribute('open');}
-  enquiryTableRows();
-  analyticsResult=null;analyticsError='';
-  flash('Enquiry ENQ-'+String(id).padStart(5,'0')+' deleted');
- }catch(error){
-  flash(error.message||'Deletion failed',true);
-  btn.disabled=false;btn.textContent='Delete Enquiry';
- }
 }
 function showEnquiryDetails(id){
  const e=enquiryRecords.find(item=>Number(item.id)===id);
@@ -148,10 +118,9 @@ function enquiryPanel(){
 
   '<button type="button" class="btn soft enquiry-clear" id="enquiryClearFilters">Clear</button>'+
  '</div>';
- const table='<div class="table-wrap"><table class="data-table enquiry-table"><thead><tr><th>Reference</th><th>Date</th><th>Type</th><th>Products</th><th>Amount</th><th>Customer</th><th>Actions</th></tr></thead><tbody id="enquiryTableBody"></tbody></table></div><div class="enquiry-table-summary"><span id="enquiryResultCount"></span></div>';
+ const table='<div class="table-wrap"><table class="data-table enquiry-table"><thead><tr><th>Reference</th><th>Date</th><th>Type</th><th>Products</th><th>Amount</th><th>Customer</th></tr></thead><tbody id="enquiryTableBody"></tbody></table></div><div class="enquiry-table-summary"><span id="enquiryResultCount"></span></div>';
  const dialog='<dialog class="enquiry-details-dialog" id="enquiryDetailsDialog" aria-labelledby="enquiryDetailsTitle"><div class="enquiry-details-head"><h3 id="enquiryDetailsTitle"></h3><button type="button" class="enquiry-close" id="enquiryDetailsClose" aria-label="Close">×</button></div><p id="enquiryDetailsMeta" class="muted"></p><div class="table-wrap"><table class="data-table"><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody id="enquiryDetailsItems"></tbody></table></div><div class="enquiry-details-bottom"><strong id="enquiryDetailsTotal"></strong><button type="button" class="btn soft" id="enquiryDetailsDone">Close</button></div></dialog>';
- const deleteDialog='<dialog class="enquiry-delete-dialog" id="enquiryDeleteDialog" aria-labelledby="enquiryDeleteTitle" aria-describedby="enquiryDeleteText"><div class="enquiry-delete-heading"><h3 id="enquiryDeleteTitle">Delete Enquiry?</h3></div><p id="enquiryDeleteText"></p><p class="enquiry-delete-warning">This action cannot be undone.</p><div class="enquiry-delete-actions"><button type="button" class="btn soft" id="enquiryDeleteCancel">Cancel</button><button type="button" class="btn enquiry-delete-confirm" id="enquiryDeleteConfirm">Delete Enquiry</button></div></dialog>';
- return '<section class="panel enquiry-inbox-panel">'+controls+table+dialog+deleteDialog+'</section>';
+ return '<section class="panel enquiry-inbox-panel">'+controls+table+dialog+'</section>';
 }
 function wireEnquiryFilters(){
  const pairs=[['enquirySearch','search'],['enquiryFrom','from'],['enquiryTo','to'],['enquiryType','type']];
@@ -173,8 +142,6 @@ function wireEnquiryFilters(){
   $('enquiryDetailsClose').onclick=close;
   $('enquiryDetailsDone').onclick=close;
  }
- const deleteDialog=$('enquiryDeleteDialog');
- if(deleteDialog){$('enquiryDeleteCancel').onclick=()=>deleteDialog.close();deleteDialog.addEventListener('close',()=>{pendingDeleteEnquiryId=0;});}
  enquiryTableRows();
 }
 async function loadEnquiries(){
