@@ -142,8 +142,8 @@ let galleryBusy=false;
 function galleryImportPanel(){
  const available=Math.max(0,Number(data.free_product_limit)-data.products.length);
  return panel('Add Products from Gallery',
- '<div class="field"><label for="galleryBulkFile">Select Product Photos</label><input id="galleryBulkFile" type="file" multiple accept="image/jpeg,image/png,image/webp"></div>'+
- '<div id="galleryBulkMessage" role="status" aria-live="polite" class="hint">'+available+' product slots available. Each selected photo creates a separate product.</div>'+
+ '<div class="field"><label>Select Product Photos</label><div class="gallery-file-picker"><label class="btn soft gallery-file-button" for="galleryBulkFile">Choose Photos</label><input id="galleryBulkFile" class="gallery-file-input" type="file" multiple accept="image/jpeg,image/png,image/webp"><span id="galleryFileCount" aria-live="polite">No photos selected</span></div></div>'+
+ '<div id="galleryBulkMessage" role="status" aria-live="polite" class="gallery-bulk-notice" hidden></div>'+
  '<div id="galleryBulkRows" class="gallery-bulk-rows"></div>'+
  '<div class="inline-actions" style="margin-top:12px"><button id="galleryBulkSave" type="button" class="btn primary" disabled>Save Products</button> '+
  button('Cancel','cancel')+'</div>');
@@ -155,19 +155,25 @@ function galleryDraftName(filename){
 function addGalleryDrafts(files){
  const message=$('galleryBulkMessage');
  const available=Math.max(0,Number(data.free_product_limit)-data.products.length);
- if(files.length+galleryDrafts.length>Math.min(30,available)){message.textContent='Select up to '+Math.min(30,available)+' products within your product allowance.';return;}
+ if(files.length+galleryDrafts.length>Math.min(30,available)){message.hidden=false;message.textContent='Select up to '+Math.min(30,available)+' products within your product allowance.';return;}
  for(const file of files){
-  if(!/^image\/(jpeg|png|webp)$/.test(file.type)){message.textContent='Only JPG, PNG and WebP photos are supported.';return;}
+  if(!/^image\/(jpeg|png|webp)$/.test(file.type)){message.hidden=false;message.textContent='Only JPG, PNG and WebP photos are supported.';return;}
  }
  for(const file of files)galleryDrafts.push({file,preview:URL.createObjectURL(file),name:galleryDraftName(file.name),category_id:'',price:'',unit:'Piece',url:null});
  renderGalleryDrafts();
- message.textContent=galleryDrafts.length+' product photos selected. Review names and prices, then save.';
+ message.textContent='';message.hidden=true;
 }
 function clearGalleryDrafts(){
  for(const draft of galleryDrafts)URL.revokeObjectURL(draft.preview);
  galleryDrafts=[];galleryBusy=false;
 }
 function renderGalleryDrafts(){
+ const counter=$('galleryFileCount');
+ if(counter)counter.textContent=galleryDrafts.length?(galleryDrafts.length===1?'1 photo selected':galleryDrafts.length+' photos selected'):'No photos selected';
+ const picker=$('galleryBulkFile');
+ const pickerLabel=document.querySelector('.gallery-file-button');
+ if(pickerLabel)pickerLabel.textContent=galleryDrafts.length?'Add More Photos':'Choose Photos';
+
  const holder=$('galleryBulkRows');if(!holder)return;holder.replaceChildren();
  const categoryChoices='<option value="">No Category</option>'+data.categories.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
  galleryDrafts.forEach((draft,index)=>{
@@ -195,17 +201,17 @@ async function saveGalleryDrafts(){
  if(galleryBusy||!galleryDrafts.length)return;
  const message=$('galleryBulkMessage'),button=$('galleryBulkSave');
  const available=Math.max(0,Number(data.free_product_limit)-data.products.length);
- if(galleryDrafts.length>available){message.textContent='Product limit reached; no products created.';return;}
+ if(galleryDrafts.length>available){message.hidden=false;message.textContent='Product limit reached; no products created.';return;}
  const names=new Set((data.products||[]).map(p=>p.name.trim().toLowerCase()));
  for(let i=0;i<galleryDrafts.length;i++){
   const d=galleryDrafts[i],name=d.name.trim(),price=d.price.trim(),unit=d.unit.trim();
-  if(!name||name.length>180){message.textContent='Enter a product name for photo '+(i+1);return;}
-  if(names.has(name.toLowerCase())){message.textContent='Duplicate product name: '+name;return;}
+  if(!name||name.length>180){message.hidden=false;message.textContent='Enter a product name for photo '+(i+1);return;}
+  if(names.has(name.toLowerCase())){message.hidden=false;message.textContent='Duplicate product name: '+name;return;}
   names.add(name.toLowerCase());
   if(price&&!/^(?:0|[1-9][0-9]{0,9})(?:\.[0-9]{1,2})?$/.test(price)&&price.toLowerCase()!=='on request'){
-   message.textContent='Invalid price for '+name;return;
+   message.hidden=false;message.textContent='Invalid price for '+name;return;
   }
-  if(!unit||unit.length>30){message.textContent='Enter a valid unit for '+name;return;}
+  if(!unit||unit.length>30){message.hidden=false;message.textContent='Enter a valid unit for '+name;return;}
  }
  galleryBusy=true;button.disabled=true;button.textContent='Saving...';
  const input=$('galleryBulkFile');if(input)input.disabled=true;
@@ -213,7 +219,7 @@ async function saveGalleryDrafts(){
   for(let i=0;i<galleryDrafts.length;i++){
    const draft=galleryDrafts[i];
    if(draft.url)continue;
-   message.textContent='Uploading photo '+(i+1)+' of '+galleryDrafts.length+'...';
+   message.hidden=false;message.textContent='Uploading photo '+(i+1)+' of '+galleryDrafts.length+'...';
    const blob=await prepareProductImage(draft.file);
    const fd=new FormData();fd.append('image',blob);
    const response=await fetch('/api/upload.php',{method:'POST',headers:{'X-CSRF-Token':csrf},body:fd,credentials:'same-origin'});
@@ -221,14 +227,14 @@ async function saveGalleryDrafts(){
    if(!response.ok||!result.url)throw Error(result.error||'Photo upload failed.');
    draft.url=result.url;
   }
-  message.textContent='Saving '+galleryDrafts.length+' products...';
+  message.hidden=false;message.textContent='Saving '+galleryDrafts.length+' products...';
   const rows=galleryDrafts.map(d=>({name:d.name.trim(),category_id:d.category_id,price:d.price.trim(),unit:d.unit.trim(),image_url:d.url}));
   const result=await api('gallery-product-import',{rows});
   if(!result.ok)throw Error('The server did not confirm the products.');
   const count=result.created;clearGalleryDrafts();await refresh();
   flash(count+' products created from gallery photos.');
  }catch(error){
-  message.textContent=error.message||'Products could not be saved.';
+  message.hidden=false;message.textContent=error.message||'Products could not be saved.';
  }finally{
   galleryBusy=false;
   if(button&&button.isConnected){button.disabled=false;button.textContent='Save Products';}
