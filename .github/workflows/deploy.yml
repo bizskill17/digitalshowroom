@@ -32,8 +32,6 @@ jobs:
           node --check assets/login.js
           node --check assets/admin-login.js
           node --check assets/dashboard.js
-          node --check assets/share-kit.js
-          node --check assets/vendor/qrcode.min.js
           node --check assets/shop.js
 
       - name: Verify deployment does not contain persistent data or secrets
@@ -131,10 +129,11 @@ jobs:
           mirror --reverse --verbose --only-newer --exclude-glob .git/ --exclude-glob .github/ --exclude-glob .gitignore --exclude-glob README.md --exclude-glob node_modules/ ./ ./
           # Always replace the dashboard assets; FTP timestamps can otherwise leave older code in place.
           put assets/dashboard.js -o ./assets/dashboard.js
-          put assets/share-kit.js -o ./assets/share-kit.js
-          put assets/vendor/qrcode.min.js -o ./assets/vendor/qrcode.min.js
-          put assets/vendor/QRCodeJS-LICENSE.txt -o ./assets/vendor/QRCodeJS-LICENSE.txt
           put assets/style.css -o ./assets/style.css
+          # Remove only obsolete Share Kit code; never touch seller uploads or protected config.
+          rm -f ./assets/share-kit.js
+          rm -f ./assets/vendor/qrcode.min.js
+          rm -f ./assets/vendor/QRCodeJS-LICENSE.txt
           put dashboard.html -o ./dashboard.html
           # Ensure new friendly shop routes and public assets are not skipped by FTP timestamp differences.
           put .htaccess -o ./.htaccess
