@@ -104,3 +104,11 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
 .gallery-file-button{min-height:26px;padding:4px 10px;border:1px solid #879ab1;border-radius:4px;background:#f5f7fa;color:#142c4f;font-size:13px;font-weight:500;box-shadow:none}
 .gallery-file-button:hover{background:#e9f0f9}
 #galleryFileCount{font-size:13px;color:#253650}
+
+/* Phase 2: seller enquiry inbox */
+.enquiry-note{margin:0 0 14px}
+.enquiry-items{padding:8px 0;min-width:220px}
+.enquiry-item{padding:4px 0;border-bottom:1px solid #ebf0f8;white-space:normal}
+.enquiry-status{min-width:112px;padding:7px 8px;border:1px solid #bdd1e9;border-radius:8px;background:#fff;color:#0c2b52}
+.data-table details summary{cursor:pointer;color:#075dcc;font-weight:600}
+@media(max-width:800px){.data-table .enquiry-status{min-width:95px}.enquiry-items{min-width:180px}}
