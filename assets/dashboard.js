@@ -19,8 +19,7 @@ function sellerDashboard(){
  return '<div class="welcome"><div><h2>'+esc(data.shop.name)+'</h2><p>Manage your products, create catalogues and share your shop with customers.</p></div><a class="btn primary" target="_blank" rel="noopener" href="'+esc(shopUrl())+'">Public Showroom ↗</a></div>'
  +'<div class="stats">'+stat('Products',n+' / '+limit,'blue','Free product allowance')+stat('Categories',data.categories.length,'green')+stat('Catalogues',data.catalogues.length,'amber')+stat('Subscription','Free','purple','Paid plans coming later')+'</div>'
  +'<div class="columns"><div>'+productsPanel(true)+'</div><div>'+panel('Public Showroom','<div class="preview-link">'+esc(shopUrl())+'</div><p>'+button('Copy Link','copyLink')+' <a class="btn primary sm" target="_blank" href="'+esc(shopUrl())+'">Open Shop ↗</a></p>')
- +panel('Create Status Images','<p>Choose active products and download ready-to-share promotional pictures.</p>'+button('Create Status Image','nav-status','primary'))
- +panel('Product Allowance','<p>Products used: <b>'+n+'</b> of <b>'+limit+'</b></p><p class="hint">Subscription payments are not active yet. Product limits can be changed by an administrator.</p>')+'</div></div>';
+ +'</div></div>';
 }
 function productsPanel(short=false){
  const rows=data.products.slice(0,short?8:999).map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+esc(data.categories.find(c=>c.id==p.category_id)?.name||'—')+'</td><td>'+(p.price===null?'On request':'₹'+Number(p.price).toFixed(2))+'</td><td><span class="pill '+(!+p.active?'off':'')+'">'+(+p.active?'Active':'Hidden')+'</span></td><td class="actions">'+tdActions('edit-product-'+p.id,'delete-product-'+p.id)+'</td></tr>').join('');
