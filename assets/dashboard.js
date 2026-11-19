@@ -59,8 +59,10 @@ function adminShops(){
  return panel('Seller & Shop Management',wrapTable(['Seller','Shop','Products','Status','Actions'],rows));
 }
 function adminSettings(){return panel('Platform Settings','<form id="settingsForm">'+field('Free Product Limit','freeLimit',data.stats.free_product_limit,'number','min="0" max="100000" step="1" required')+'<p class="hint">Changing this limit affects the allowed number of products for free sellers. Existing products are not deleted.</p><button type="submit" class="btn primary">Save Settings</button></form>');}
+function accountPanel(){return panel('Edit My Name','<form id="accountForm">'+field('Your Name *','accountName',user?.name||'','text','required maxlength="150"')+'<button type="submit" class="btn primary">Save Name</button> '+button('Cancel','cancel-account')+'</form>');}
 function render(){
  nav();
+ if(view==='account'){title('My Account');$('content').innerHTML=accountPanel();wireForms();document.querySelectorAll('[data-do]').forEach(b=>b.onclick=()=>doAction(b.dataset.do));return;}
  let html='',name='Dashboard';
  if(data.role==='admin'){
   if(view==='dashboard')html=adminDashboard();
@@ -85,6 +87,7 @@ async function refresh(){data=await api('dashboard');if(data.role==='admin'&& ![
 async function post(action,payload,success){try{await api(action,payload);flash(success||'Saved successfully');await refresh();}catch(e){flash(e.message,true)}}
 async function uploadImage(input,target){if(!input.files||!input.files[0])return;const fd=new FormData();fd.append('image',input.files[0]);input.disabled=true;try{const res=await fetch('/api/upload.php',{method:'POST',headers:{'X-CSRF-Token':csrf},body:fd,credentials:'same-origin'});const out=await res.json();if(!res.ok)throw Error(out.error||'Upload failed');target.value=out.url;flash('Image uploaded successfully');}catch(e){flash(e.message,true)}finally{input.disabled=false;}}
 function wireForms(){
+ {const f=$('accountForm');if(f)f.onsubmit=async e=>{e.preventDefault();const name=$('accountName').value.trim();const btn=f.querySelector('[type="submit"]');btn.disabled=true;try{const result=await api('account-name',{name});user.name=result.name;$('userName').textContent=user.name;view='dashboard';render();flash('Name updated successfully');}catch(err){flash(err.message,true)}finally{btn.disabled=false;}};}
  let uploader=$('shopLogoFile');if(uploader)uploader.onchange=()=>uploadImage(uploader,$('shopLogo'));
  uploader=$('productImageFile');if(uploader)uploader.onchange=()=>uploadImage(uploader,$('productImage'));
  {const f=$('shopForm');if(f)f.onsubmit=e=>{e.preventDefault();post('shop',{name:$('shopName').value,phone:$('shopPhone').value,tagline:$('shopTag').value,address:$('shopAddress').value,logo_url:$('shopLogo').value});};}
@@ -117,6 +120,7 @@ async function doAction(action){
  if(action==='copyLink'){try{await navigator.clipboard.writeText(shopUrl());flash('Shop link copied');}catch(e){flash('Copy unavailable in this browser',true)}return;}
  if(action==='nav-status'){view='status';render();return;}
  if(action==='nav-settings'){view='settings';render();return;}
+ if(action==='cancel-account'){view='dashboard';render();return;}
  if(action==='cancel'){render();return;}
  let id;
  if(action==='new-product'||action.startsWith('edit-product-')){$('content').innerHTML=productForm(action==='new-product'?0:+action.split('-').pop());wireForms();return;}
@@ -140,5 +144,6 @@ function generateStatus(){
   if(p.image_url){const img=new Image();img.crossOrigin='anonymous';img.onload=()=>{try{ctx.drawImage(img,50,200,700,530)}catch(e){}try{finish()}catch(e){flash('This image host prevents download. Use an image from a CORS-enabled host.',true)}};img.onerror=finish;img.src=p.image_url;}else finish();
  });
 }
+$('editAccount').onclick=()=>{view='account';render();};
 $('logout').onclick=async()=>{try{await api('logout',{});}finally{location.href='/login.html';}};
 api('me').then(async d=>{if(!d.user){location.href='/login.html';return;}csrf=d.csrf;user=d.user;$('userName').textContent=user.name;await refresh();}).catch(()=>{location.href='/login.html';});
