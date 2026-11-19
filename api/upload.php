@@ -22,7 +22,10 @@ try{
  if(!$sid)reply(['error'=>'Shop not found'],404);
  $type=(new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
  $allowed=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'];
- if(!isset($allowed[$type])||!getimagesize($file['tmp_name']))reply(['error'=>'Only JPG, PNG and WebP images are allowed'],422);
+ $dimensions=@getimagesize($file['tmp_name']);
+ if(!isset($allowed[$type])||!is_array($dimensions))reply(['error'=>'Only valid JPG, PNG and WebP images are allowed'],422);
+ $width=(int)$dimensions[0];$height=(int)$dimensions[1];
+ if($width<1||$height<1||$width>12000||$height>12000||($width*$height)>40000000)reply(['error'=>'Image dimensions are too large'],422);
  $dir=dirname(__DIR__).'/uploads/'.$sid;
  if(!is_dir($dir)&&!mkdir($dir,0755,true)&&!is_dir($dir))throw new RuntimeException('Unable to create upload directory');
  $name=bin2hex(random_bytes(16)).'.'.$allowed[$type];
