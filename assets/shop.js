@@ -2,7 +2,9 @@
 const $=id=>document.getElementById(id);
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let data=null,category=0,cart={};
-const slug=new URLSearchParams(location.search).get('slug')||'';
+// Support both /bca-momo-wala and the original /shop.html?slug=bca-momo-wala.
+const params=new URLSearchParams(location.search);
+const slug=params.get('slug')||decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g,'')).toLowerCase();
 function count(){const picks=Object.entries(cart).filter(([id,qty])=>qty>0),qty=picks.reduce((n,[,q])=>n+q,0);let total=0,missing=false;picks.forEach(([id,q])=>{const p=data.products.find(x=>x.id==id);if(p){if(p.price===null)missing=true;else total+=Number(p.price)*q;}});$('selectedCount').textContent=qty?qty+' items selected':'No items selected';$('selectedTotal').textContent=qty?(missing?'Price on request for some items':'Estimated total ₹'+total.toFixed(2)):'Select products to enquire';}
 function render(){
  document.title=data.shop.name+' | Digital Showroom';
