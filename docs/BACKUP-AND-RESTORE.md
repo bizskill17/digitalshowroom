@@ -38,9 +38,9 @@ The script does not install or enable a cron job by itself. Hostinger's built-in
 ## Restore rehearsal (staging only)
 
 1. Provision an isolated staging site and **new staging database** with separate credentials; never reuse production credentials.
-2. Download a backup ZIP privately and inspect `manifest.json` and the eight SQL exports.
+2. Download a backup ZIP privately and inspect `manifest.json` and the ten SQL exports.
 3. Extract into a private workstation or staging-only folder. Import schema and rows into the **empty staging database** in this order:
-   `ds_users`, `ds_shops`, `ds_categories`, `ds_products`, `ds_catalogues`, `ds_catalogue_products`, `ds_settings`, `ds_product_images`.
+   `ds_users`, `ds_shops`, `ds_categories`, `ds_products`, `ds_catalogues`, `ds_catalogue_products`, `ds_settings`, `ds_product_images`, `ds_enquiries`, `ds_enquiry_items`.
 4. Copy `uploads/` into the staging site only; preserve directory structure and verify image files.
 5. Check table counts against manifest and sample product images; sign in to **staging** with a dedicated test account. Avoid outbound customer notifications during testing.
 6. Record restore date, backup name, row counts, missing images, errors, and time taken. Only declare the backup system **verified** after this succeeds.
@@ -48,6 +48,6 @@ The script does not install or enable a cron job by itself. Hostinger's built-in
 ### Known limitations
 
 - Database tables are exported using a repeatable-read transaction; images are archived after the database snapshot. Newly changing images could therefore differ slightly from the SQL snapshot.
-- Schema changes must be coordinated: this utility currently backs up the eight known `ds_*` tables. Update the table list before introducing new tables.
+- Schema changes must be coordinated: this utility currently backs up the ten known `ds_*` tables. Update the table list before introducing new tables.
 - It does not yet provide point-in-time recovery, encrypted backups by itself, automated off-host copying, retention cleanup, or an automated restore test.
 - Strongly consider Hostinger's own full backups as an additional independent recovery option.
