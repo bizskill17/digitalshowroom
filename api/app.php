@@ -54,15 +54,18 @@ function setup(PDO $db):void{
  $photosColumn=$db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ds_subscription_plans' AND COLUMN_NAME='photos_per_product'");
  $photosColumn->execute();
  if(!(int)$photosColumn->fetchColumn()){
-  try{$db->exec("ALTER TABLE ds_subscription_plans ADD COLUMN photos_per_product TINYINT UNSIGNED NOT NULL DEFAULT 6");}
+  try{
+   $db->exec("ALTER TABLE ds_subscription_plans ADD COLUMN photos_per_product TINYINT UNSIGNED NOT NULL DEFAULT 6");
+   $db->exec("UPDATE ds_subscription_plans SET photos_per_product=2 WHERE code='free'");
+  }
   catch(PDOException $e){if(($e->errorInfo[1]??null)!==1060)throw $e;}
  }
  $freeLimit=max(0,(int)$db->query("SELECT setting_value FROM ds_settings WHERE setting_key='free_product_limit'")->fetchColumn());
  $seed=$db->prepare("INSERT IGNORE INTO ds_subscription_plans
- (code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,features_json,active,sort_order)
- VALUES(?,?,?,?,?,?,?,?,?,?)");
- $seed->execute(['free','Free','Starter showroom',0,0,$freeLimit,null,json_encode(['analytics'=>true,'whatsapp_status'=>true,'catalogue_pdf'=>false,'remove_branding'=>false],JSON_THROW_ON_ERROR),1,10]);
- $seed->execute(['pro','Pro','Paid plan setup pending',0,0,null,null,json_encode(['analytics'=>true,'whatsapp_status'=>true,'catalogue_pdf'=>false,'remove_branding'=>false],JSON_THROW_ON_ERROR),0,20]);
+ (code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,photos_per_product,features_json,active,sort_order)
+ VALUES(?,?,?,?,?,?,?,?,?,?,?)");
+ $seed->execute(['free','Free','Starter showroom',0,0,$freeLimit,null,2,json_encode(['analytics'=>true,'whatsapp_status'=>true,'catalogue_pdf'=>false,'remove_branding'=>false],JSON_THROW_ON_ERROR),1,10]);
+ $seed->execute(['pro','Pro','Paid plan setup pending',0,0,null,null,6,json_encode(['analytics'=>true,'whatsapp_status'=>true,'catalogue_pdf'=>false,'remove_branding'=>false],JSON_THROW_ON_ERROR),0,20]);
 
  // Add a per-shop brand colour without changing existing shop records.
  $brandColumn=$db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ds_shops' AND COLUMN_NAME='theme_color'");
@@ -114,7 +117,10 @@ function subscriptionPlans(PDO $db):array{
  $rows=$db->query('SELECT id,code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,photos_per_product,features_json,active,sort_order FROM ds_subscription_plans ORDER BY sort_order,id')->fetchAll();
  foreach($rows as &$row){
   $features=json_decode((string)$row['features_json'],true);
-  $row['features']=is_array($features)?$features:[];
+  $defaults=['analytics'=>true,'whatsapp_status'=>true,'enquiry_inbox'=>true,
+   'excel_import'=>$row['code']==='pro','gallery_upload'=>$row['code']==='pro',
+   'catalogue_pdf'=>false,'remove_branding'=>false];
+  $row['features']=array_merge($defaults,is_array($features)?$features:[]);
   unset($row['features_json']);
  }
  unset($row);
