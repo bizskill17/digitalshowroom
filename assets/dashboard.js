@@ -29,7 +29,7 @@ function sellerDashboard(){
 }
 function productsPanel(short=false){
  const rows=data.products.slice(0,short?8:999).map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+esc(data.categories.find(c=>c.id==p.category_id)?.name||'—')+'</td><td>'+(p.price===null?'On request':'₹'+Number(p.price).toFixed(2))+'</td><td>'+esc(p.unit||'Piece')+'</td><td>'+esc(p.display_order??0)+'</td><td><span class="pill '+(!+p.active?'off':'')+'">'+(+p.active?'Active':'Hidden')+'</span></td><td class="actions">'+tdActions('edit-product-'+p.id,'delete-product-'+p.id)+'</td></tr>').join('');
- return panel('Products',wrapTable(['Product','Category','Price','Unit','Order','Status','Actions'],rows),button('＋ Add Product','new-product','primary'));
+ return panel('Products',wrapTable(['Product','Category','Price','Unit','Order','Status','Actions'],rows),button('＋ Add Product','new-product','primary')+' '+button('Import Products','import-products'));
 }
 function categoryPanel(){
  const rows=data.categories.map(c=>'<tr><td>'+esc(c.name)+'</td><td>'+data.products.filter(p=>p.category_id==c.id).length+'</td><td>'+tdActions('edit-category-'+c.id,'delete-category-'+c.id)+'</td></tr>').join('');
@@ -38,6 +38,104 @@ function categoryPanel(){
 function profilePanel(){
  const s=data.shop;
  return panel('Shop Profile','<form id="shopForm"><div class="form-grid">'+field('Your Name *','accountName',user?.name||'','text','required maxlength="150"')+field('Shop Name *','shopName',s.name,'text','required maxlength="150"')+field('WhatsApp Number *','shopPhone',s.phone,'tel','required maxlength="15"')+field('Tagline','shopTag',s.tagline,'text','maxlength="255"')+field('Shop Address','shopAddress',s.address,'text','maxlength="255"')+'</div><div class="field"><label for="shopThemeColor">Shop Colour</label><select id="shopThemeColor">'+[['#E83F7E','Pink'],['#1D4ED8','Blue'],['#0F766E','Teal'],['#6D28D9','Purple'],['#9A3412','Terracotta'],['#334155','Slate']].map(([value,label])=>'<option value="'+value+'" '+((s.theme_color||'#E83F7E').toUpperCase()===value?'selected':'')+'>'+label+'</option>').join('')+'</select></div>'+'<input type="hidden" id="shopLogo" value="'+esc(s.logo_url||'')+'"><div class="field"><label for="shopLogoFile">Upload Shop Logo (JPG, PNG, WebP)</label><input type="file" id="shopLogoFile" accept="image/jpeg,image/png,image/webp"></div><button class="btn primary" type="submit">Save Profile</button></form>');
+}
+
+const productImportColumns=['Product Name','Category','Price','Unit','Description','Display Order','Visible'];
+let productImportRows=[];
+function csvCell(value){
+ const text=String(value??'');
+ return /[",\r\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;
+}
+function downloadProductTemplate(){
+ const rows=[productImportColumns,['Sample Product','', '120.00','Piece','Product description','0','Yes']];
+ const csv='\uFEFF'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n');
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='digital-showroom-products-template.csv';a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function parseProductCsv(text){
+ const rows=[],row=[];let current='',quoted=false;
+ text=String(text||'').replace(/^\uFEFF/,'');
+ for(let i=0;i<text.length;i++){
+  const c=text[i];
+  if(quoted){
+   if(c==='"'&&text[i+1]==='"'){current+='"';i++;}
+   else if(c==='"')quoted=false;
+   else current+=c;
+  }else if(c==='"'){if(current!=='')throw Error('Invalid quotation marks in CSV.');quoted=true;}
+  else if(c===','){row.push(current);current='';}
+  else if(c==='\n'||c==='\r'){
+   row.push(current);if(row.some(x=>x.trim()!==''))rows.push([...row]);
+   row.length=0;current='';if(c==='\r'&&text[i+1]==='\n')i++;
+  }else current+=c;
+ }
+ if(quoted)throw Error('Unclosed quotation marks in CSV.');
+ row.push(current);if(row.some(x=>x.trim()!==''))rows.push([...row]);
+ return rows;
+}
+function productImportPanel(){
+ return panel('Import Products',
+  '<div class="inline-actions">'+button('Download Template','import-template')+'</div>'+
+  '<div class="field"><label for="importCsvFile">Choose Excel CSV File</label><input type="file" id="importCsvFile" accept=".csv,text/csv"></div>'+
+  '<div id="productImportNotice" class="hint" role="status">Save the template as CSV UTF-8 from Excel. Categories must already exist. Price may be blank or On Request. Photos can be added after import. Existing products are never overwritten.</div>'+
+  '<div id="productImportPreview"></div><div class="inline-actions" style="margin-top:14px">'+
+  '<button type="button" id="importSave" class="btn primary" disabled>Import Products</button> '+
+  button('Cancel','cancel')+'</div>');
+}
+function previewProductImport(){
+ const target=$('productImportPreview');if(!target)return;
+ if(!productImportRows.length){target.replaceChildren();$('importSave').disabled=true;return;}
+ const head=['Product','Category','Price','Unit','Order','Visible'];
+ const tbody=productImportRows.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+esc(p.category||'—')+'</td><td>'+esc(p.price||'On request')+'</td><td>'+esc(p.unit)+'</td><td>'+esc(p.display_order)+'</td><td>'+esc(p.visible)+'</td></tr>').join('');
+ target.innerHTML='<p><b>'+productImportRows.length+' products ready for review</b></p>'+wrapTable(head,tbody);
+ $('importSave').disabled=false;
+}
+async function loadProductImport(file){
+ productImportRows=[];previewProductImport();
+ const notice=$('productImportNotice');
+ if(!file)return;
+ try{
+  if(file.size>1024*1024)throw Error('The CSV must be below 1 MB.');
+  const table=parseProductCsv(await file.text());
+  if(!table.length)throw Error('CSV is empty.');
+  const header=table.shift().map(v=>v.trim().toLowerCase());
+  if(header.length!==productImportColumns.length||header.some((col,i)=>col!==productImportColumns[i].toLowerCase()))
+   throw Error('CSV headings do not match the template. Download and use the template.');
+  if(!table.length||table.length>100)throw Error('Enter between 1 and 100 products.');
+  const categories=new Set((data.categories||[]).map(c=>c.name.trim().toLowerCase()));
+  const existing=new Set((data.products||[]).map(p=>p.name.trim().toLowerCase()));
+  const seen=new Set();
+  productImportRows=table.map((cells,i)=>{
+   const line=i+2;
+   if(cells.length!==7)throw Error('Incorrect number of columns on row '+line);
+   const [name,category,price,unit,description,display_order,visible]=cells.map(v=>v.trim());
+   if(!name||name.length>180)throw Error('Invalid product name on row '+line);
+   if(seen.has(name.toLowerCase())||existing.has(name.toLowerCase()))throw Error('Duplicate product on row '+line+': '+name);
+   seen.add(name.toLowerCase());
+   if(category&&!categories.has(category.toLowerCase()))throw Error('Create category "'+category+'" first (row '+line+').');
+   if(price&&!/^(?:0|[1-9][0-9]{0,9})(?:\.[0-9]{1,2})?$/.test(price)&&price.toLowerCase()!=='on request')throw Error('Invalid price on row '+line);
+   if(!(unit||'Piece')||unit.length>30)throw Error('Invalid unit on row '+line);
+   if(description.length>2500)throw Error('Description too long on row '+line);
+   if(!/^\d{1,6}$/.test(display_order||'0')||Number(display_order||0)>999999)throw Error('Invalid order on row '+line);
+   if(!['yes','no'].includes((visible||'yes').toLowerCase()))throw Error('Visible must be Yes or No on row '+line);
+   return {name,category,price,unit:unit||'Piece',description,display_order:display_order||'0',visible:visible||'Yes'};
+  });
+  if(data.products.length+productImportRows.length>data.free_product_limit)throw Error('Product limit exceeded. You have '+data.products.length+' products, and your limit is '+data.free_product_limit+'.');
+  notice.textContent='Review the products below, then click Import Products. No existing records will be modified.';
+  previewProductImport();
+ }catch(error){productImportRows=[];previewProductImport();notice.textContent=error.message;}
+}
+async function submitProductImport(){
+ const button=$('importSave'),notice=$('productImportNotice');
+ if(!button||!productImportRows.length)return;
+ button.disabled=true;button.textContent='Importing...';
+ try{
+  const result=await api('product-import',{rows:productImportRows});
+  if(!result.ok)throw Error('Import not confirmed.');
+  productImportRows=[];view='products';await refresh();
+  flash(result.created+' products imported successfully.');
+ }catch(error){notice.textContent=error.message;button.disabled=false;button.textContent='Import Products';}
 }
 function productForm(id){
  const p=data.products.find(v=>v.id==id)||{name:'',description:'',category_id:'',price:'',image_url:'',active:1};let cats='<option value="">No Category</option>'+data.categories.map(c=>'<option value="'+c.id+'" '+(c.id==p.category_id?'selected':'')+'>'+esc(c.name)+'</option>').join('');
@@ -172,6 +270,11 @@ async function uploadProductPhotos(input){
  }finally{input.value='';input.disabled=false;if(save)save.disabled=false;}
 }
 function wireForms(){
+ const csv=$('importCsvFile');
+ if(csv)csv.onchange=()=>loadProductImport(csv.files?.[0]);
+ const importButton=$('importSave');
+ if(importButton)importButton.onclick=submitProductImport;
+
  let uploader=$('shopLogoFile');if(uploader)uploader.onchange=()=>uploadImage(uploader,$('shopLogo'));
  uploader=$('productImageFile');if(uploader){
   const form=$('productForm'),id=Number(form?.dataset.id||0);
@@ -232,6 +335,8 @@ async function doAction(action){
  if(action==='copyLink'){try{await navigator.clipboard.writeText(shopUrl());flash('Shop link copied');}catch(e){flash('Copy unavailable in this browser',true)}return;}
  if(action==='nav-status'){navigateTo('status');return;}
  if(action==='nav-settings'){navigateTo('settings');return;}
+ if(action==='import-template'){downloadProductTemplate();return;}
+ if(action==='import-products'){productImportRows=[];$('content').innerHTML=productImportPanel();wireForms();return;}
  if(action==='cancel'){render();return;}
  let id;
  if(action==='new-product'||action.startsWith('edit-product-')){$('content').innerHTML=productForm(action==='new-product'?0:+action.split('-').pop());wireForms();return;}
