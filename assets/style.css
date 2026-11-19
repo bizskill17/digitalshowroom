@@ -365,3 +365,17 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
  .status-result-footer button{font-size:12px}
 }
 @media(max-width:380px){.status-results{grid-template-columns:1fr}.status-result-card>img{max-height:470px}}
+
+/* Seller Enquiry Inbox: controlled deletion of one enquiry. */
+.enquiry-table th:last-child,.enquiry-table td.enquiry-action{white-space:nowrap;text-align:right}
+.enquiry-delete{background:#fff1f2!important;border:1px solid #ffc6cc!important;color:#ba2638!important}
+.enquiry-delete:hover{background:#ffe1e5!important}
+.enquiry-delete-dialog{width:min(420px,calc(100% - 30px));max-width:420px;border:1px solid #dce5f2;border-radius:14px;padding:22px;color:#163253;box-shadow:0 16px 60px #102a4650}
+.enquiry-delete-dialog::backdrop{background:#0d224a70}
+.enquiry-delete-dialog h3{font-size:19px;margin:0 0 14px}
+.enquiry-delete-dialog p{margin:8px 0;line-height:1.5}
+.enquiry-delete-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;margin-top:22px}
+.enquiry-delete-confirm{background:#c6273e!important;border:1px solid #c6273e!important;color:white!important}
+.enquiry-delete-confirm:hover{background:#a81930!important}
+.enquiry-delete-confirm:disabled{opacity:.65;cursor:wait}
+@media(max-width:650px){.enquiry-table td.enquiry-action{min-width:100px}.enquiry-delete-dialog{padding:17px}}
