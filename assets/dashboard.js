@@ -520,7 +520,7 @@ function adminPlans(){
   '<td>₹'+monthly+'</td><td>₹'+annual+'</td><td>'+esc(planText(p.product_limit))+'</td>'+
   '<td>'+esc(planText(p.catalogue_limit))+'</td><td><span class="pill '+(!Number(p.active)?'off':'')+'">'+(Number(p.active)?'Active':'Inactive')+'</span></td>'+
   '<td><div class="inline-actions"><button class="btn sm soft" type="button" data-edit-plan="'+Number(p.id)+'">Edit</button>'+
- (['free','pro'].includes(p.code)?'':'<button class="btn sm danger plan-delete" type="button" data-delete-plan="'+Number(p.id)+'">Delete</button>')+'</div></td></tr>';
+ '<button class="btn sm danger plan-delete" type="button" data-delete-plan="'+Number(p.id)+'">Delete</button>'+'</div></td></tr>';
  }).join('');
  const table='<div class="table-wrap"><table class="data-table plan-master-table"><thead><tr><th>Plan</th><th>Monthly (₹)</th><th>Annual (₹)</th><th>Products</th><th>Catalogues</th><th>Status</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
  return '<section class="panel plan-master-panel"><div class="panel-head plan-master-actions"><button class="btn primary" type="button" id="addPlan">+ Add Plan</button></div>'+table+'<dialog class="plan-editor-dialog" id="planEditorDialog" aria-labelledby="planEditorTitle"><div id="planEditorArea"></div></dialog>'+
@@ -589,11 +589,16 @@ function wirePlans(){
   dialog.onclose=()=>{pendingPlanDeleteId=0;confirm.disabled=false;confirm.textContent='Delete Plan';};
   document.querySelectorAll('[data-delete-plan]').forEach(btn=>btn.onclick=()=>{
    const plan=planRecords.find(p=>Number(p.id)===Number(btn.dataset.deletePlan));
-   if(!plan||['free','pro'].includes(plan.code))return;
+   if(!plan)return;
    pendingPlanDeleteId=Number(plan.id);
-   $('planDeleteMessage').textContent='Delete the plan "'+plan.name+'"?';
-   confirm.disabled=Number(plan.active)===1;
-   confirm.textContent=Number(plan.active)===1?'Deactivate Plan First':'Delete Plan';
+   const protectedPlan=['free','pro'].includes(plan.code);
+   $('planDeleteMessage').textContent=protectedPlan
+    ?plan.name+' is a built-in plan and cannot be deleted.'
+    :Number(plan.active)===1
+     ?'Deactivate "'+plan.name+'" before deleting this plan.'
+     :'Are you sure you want to delete "'+plan.name+'"?';
+   confirm.disabled=protectedPlan||Number(plan.active)===1;
+   confirm.textContent=protectedPlan?'Protected Plan':Number(plan.active)===1?'Deactivate Plan First':'Delete Plan';
    dialog.showModal();
   });
   confirm.onclick=deletePlan;
