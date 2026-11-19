@@ -32,6 +32,7 @@ jobs:
           node --check assets/login.js
           node --check assets/admin-login.js
           node --check assets/dashboard.js
+          node --check assets/status-maker.js
           node --check assets/shop.js
 
       - name: Verify deployment does not contain persistent data or secrets
@@ -129,6 +130,7 @@ jobs:
           mirror --reverse --verbose --only-newer --exclude-glob .git/ --exclude-glob .github/ --exclude-glob .gitignore --exclude-glob README.md --exclude-glob node_modules/ ./ ./
           # Always replace the dashboard assets; FTP timestamps can otherwise leave older code in place.
           put assets/dashboard.js -o ./assets/dashboard.js
+          put assets/status-maker.js -o ./assets/status-maker.js
           put assets/style.css -o ./assets/style.css
           # Remove only obsolete Share Kit code; never touch seller uploads or protected config.
           rm -f ./assets/share-kit.js
