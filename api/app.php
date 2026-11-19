@@ -34,6 +34,29 @@ function setup(PDO $db):void{
  $db->exec("CREATE TABLE IF NOT EXISTS ds_analytics_events (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,shop_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NULL,event_type ENUM('visit','product_view','whatsapp_click') NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,INDEX(shop_id,created_at,event_type),INDEX(shop_id,product_id,created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("CREATE TABLE IF NOT EXISTS ds_settings (setting_key VARCHAR(80) PRIMARY KEY,setting_value VARCHAR(255) NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("INSERT IGNORE INTO ds_settings(setting_key,setting_value) VALUES ('free_product_limit','5')");
+ // Phase 3: subscription plan definitions only. Existing seller access is unchanged.
+ $db->exec("CREATE TABLE IF NOT EXISTS ds_subscription_plans (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(60) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL,
+  description VARCHAR(255) NOT NULL DEFAULT '',
+  monthly_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+  annual_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+  product_limit INT UNSIGNED NULL,
+  catalogue_limit INT UNSIGNED NULL,
+  features_json TEXT NOT NULL,
+  active TINYINT(1) NOT NULL DEFAULT 0,
+  sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+ $freeLimit=max(0,(int)$db->query("SELECT setting_value FROM ds_settings WHERE setting_key='free_product_limit'")->fetchColumn());
+ $seed=$db->prepare("INSERT IGNORE INTO ds_subscription_plans
+ (code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,features_json,active,sort_order)
+ VALUES(?,?,?,?,?,?,?,?,?,?)");
+ $seed->execute(['free','Free','Starter showroom',0,0,$freeLimit,null,json_encode(['analytics'=>true,'whatsapp_status'=>true,'catalogue_pdf'=>false,'remove_branding'=>false],JSON_THROW_ON_ERROR),1,10]);
+ $seed->execute(['pro','Pro','Paid plan setup pending',0,0,null,null,json_encode(['analytics'=>true,'whatsapp_status'=>true,'catalogue_pdf'=>false,'remove_branding'=>false],JSON_THROW_ON_ERROR),0,20]);
+
  // Add a per-shop brand colour without changing existing shop records.
  $brandColumn=$db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ds_shops' AND COLUMN_NAME='theme_color'");
  $brandColumn->execute();
@@ -80,6 +103,28 @@ function attachProductPhotos(array &$products,array $photos):void{
  }
  unset($product);
 }
+function subscriptionPlans(PDO $db):array{
+ $rows=$db->query('SELECT id,code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,features_json,active,sort_order FROM ds_subscription_plans ORDER BY sort_order,id')->fetchAll();
+ foreach($rows as &$row){
+  $features=json_decode((string)$row['features_json'],true);
+  $row['features']=is_array($features)?$features:[];
+  unset($row['features_json']);
+ }
+ unset($row);
+ return $rows;
+}
+function planMoney($value):?string{
+ if(!is_string($value)&&!is_numeric($value))return null;
+ $string=trim((string)$value);
+ if(!preg_match('/^\\d{1,10}(?:\\.\\d{1,2})?$/',$string))return null;
+ if((float)$string>9999999999.99)return null;
+ return number_format((float)$string,2,'.','');
+}
+function planLimit($value):int|null|false{
+ if($value===null||$value==='')return null;
+ $number=filter_var($value,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>100000]]);
+ return $number===false?false:$number;
+}
 function quota(PDO $db):int{return max(0,(int)$db->query("SELECT setting_value FROM ds_settings WHERE setting_key='free_product_limit'")->fetchColumn());}
 function belongs(PDO $db,string $table,int $id,int $shop):bool{
  if(!in_array($table,['ds_products','ds_categories','ds_catalogues'],true))return false;
@@ -99,6 +144,10 @@ try{
    respond(['shop'=>$shop,'categories'=>$cats,'products'=>$products,'csrf'=>$_SESSION['csrf']]);
   }
   $u=currentUser($db);if(!$u)respond(['error'=>'Please sign in'],401);
+  if($action==='subscription-plans'){
+   if($u['role']!=='admin')respond(['error'=>'Administrator access required'],403);
+   respond(['plans'=>subscriptionPlans($db),'free_product_limit'=>quota($db)]);
+  }
   if($action==='analytics'){
    if($u['role']!=='seller')respond(['error'=>'Seller access required'],403);
    $shop=shopFor($db,(int)$u['id']);$sid=(int)$shop['id'];
@@ -288,6 +337,63 @@ try{
    if($q->rowCount()!==1)respond(['error'=>'Password could not be updated. Please try again.'],409);
    session_regenerate_id(true);
    respond(['ok'=>true,'message'=>'Password updated successfully.']);
+  }
+  if($action==='plan-save'){
+   $id=filter_var($d['id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);
+   $code=strtolower(clean($d['code']??'',60));
+   $name=clean($d['name']??'',100);
+   $description=clean($d['description']??'',255);
+   $monthly=planMoney($d['monthly_price']??'');
+   $annual=planMoney($d['annual_price']??'');
+   $products=planLimit($d['product_limit']??null);
+   $catalogues=planLimit($d['catalogue_limit']??null);
+   $sort=filter_var($d['sort_order']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>999999]]);
+   $features=$d['features']??null;
+   if($id===false||!preg_match('/^[a-z][a-z0-9-]{1,59}$/',$code)||!$name||$monthly===null||$annual===null||$products===false||$catalogues===false||$sort===false||!is_array($features))respond(['error'=>'Enter valid plan details, prices and limits'],422);
+   $featureKeys=['analytics','whatsapp_status','catalogue_pdf','remove_branding'];
+   if(array_diff(array_keys($features),$featureKeys))respond(['error'=>'Unknown plan feature'],422);
+   $flags=[];
+   foreach($featureKeys as $key){
+    $flag=$features[$key]??false;
+    if(!is_bool($flag))respond(['error'=>'Invalid feature selection'],422);
+    $flags[$key]=$flag;
+   }
+   $active=($d['active']??false)===true;
+   $db->beginTransaction();
+   try{
+    $old=null;
+    if($id>0){
+     $q=$db->prepare('SELECT id,code FROM ds_subscription_plans WHERE id=? FOR UPDATE');
+     $q->execute([$id]);$old=$q->fetch();
+     if(!$old){$db->rollBack();respond(['error'=>'Plan not found'],404);}
+     if($code!==$old['code']){$db->rollBack();respond(['error'=>'The plan code cannot be changed after creation'],422);}
+    }
+    if($code==='free'){
+     if($id===0||!$active||$monthly!=='0.00'||$annual!=='0.00'||$products===null){
+      $db->rollBack();respond(['error'=>'Free plan must remain active, have zero price and a numeric product limit'],422);
+     }
+     // Keep existing enforcement (ds_settings) and the new Free plan synchronized.
+     $q=$db->prepare("UPDATE ds_settings SET setting_value=? WHERE setting_key='free_product_limit'");
+     $q->execute([(string)$products]);
+    }elseif($old&&$old['code']==='free'){
+     $db->rollBack();respond(['error'=>'Free plan code is protected'],422);
+    }
+    $json=json_encode($flags,JSON_THROW_ON_ERROR);
+    if($id>0){
+     $q=$db->prepare('UPDATE ds_subscription_plans SET name=?,description=?,monthly_price=?,annual_price=?,product_limit=?,catalogue_limit=?,features_json=?,active=?,sort_order=? WHERE id=?');
+     $q->execute([$name,$description,$monthly,$annual,$products,$catalogues,$json,$active?1:0,$sort,$id]);
+    }else{
+     $q=$db->prepare('INSERT INTO ds_subscription_plans(code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,features_json,active,sort_order) VALUES(?,?,?,?,?,?,?,?,?,?)');
+     $q->execute([$code,$name,$description,$monthly,$annual,$products,$catalogues,$json,$active?1:0,$sort]);
+     $id=(int)$db->lastInsertId();
+    }
+    $db->commit();
+   }catch(PDOException $e){
+    if($db->inTransaction())$db->rollBack();
+    if(($e->errorInfo[1]??null)===1062)respond(['error'=>'This plan code already exists'],409);
+    throw $e;
+   }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+   respond(['ok'=>true,'id'=>$id]);
   }
   if($action==='settings'){
    $n=filter_var($d['free_product_limit']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>100000]]);
