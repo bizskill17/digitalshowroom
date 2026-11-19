@@ -25,3 +25,8 @@
 .sidebar .brand{font-size:17px;letter-spacing:-.6px;gap:8px;white-space:nowrap;margin-left:5px;margin-right:0}
 .sidebar .brand .mark{width:34px;height:34px;flex:none;font-size:20px}
 @media(max-width:800px){.sidebar .brand{font-size:17px}}
+
+/* Hide native up/down spinner arrows on numeric inputs across Seller and Admin. */
+input[type="number"]{-moz-appearance:textfield;appearance:textfield}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
