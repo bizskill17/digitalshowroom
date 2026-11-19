@@ -39,3 +39,16 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
 .shop-view .product-card{border-color:color-mix(in srgb,var(--shop-accent) 20%,white)}
 .shop-view .product-card img{background:color-mix(in srgb,var(--shop-accent) 10%,white)}
 .shop-view .shop-banner{background:color-mix(in srgb,var(--shop-accent) 7%,white);border-color:color-mix(in srgb,var(--shop-accent) 20%,white)}
+
+/* Phase 1: Seller's product-photo gallery and public photo thumbnails. */
+.product-gallery{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.product-photo-item{width:130px;max-width:calc(50% - 5px);background:#fff;border:1px solid #dae4f2;border-radius:12px;padding:6px}
+.product-photo-item>img{display:block;width:100%;height:100px;object-fit:cover;border-radius:8px}
+.product-photo-actions{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:6px;font-size:12px}
+.product-photo-actions button{border:1px solid #cddbf1;background:#f5f9ff;color:#154d98;border-radius:6px;padding:4px 6px;font-size:11px}
+.product-photo-actions button:last-child{color:#bf2735;background:#fff4f4;border-color:#f5d7dc}
+.product-photo-display{position:relative}
+.shop-photo-thumbs{display:flex;gap:6px;overflow-x:auto;padding:8px;background:color-mix(in srgb,var(--shop-accent,#e83f7e) 5%,white)}
+.shop-photo-thumb{flex:0 0 44px;width:44px;height:44px;padding:2px;background:white;border:2px solid transparent;border-radius:8px}
+.shop-photo-thumb.selected{border-color:var(--shop-accent,#e83f7e)}
+.shop-photo-thumb img{height:100%;width:100%;object-fit:cover;border-radius:5px}
