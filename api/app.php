@@ -50,6 +50,13 @@ function setup(PDO $db):void{
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+ // Add one configurable plan limit without altering shop products or uploads.
+ $photosColumn=$db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ds_subscription_plans' AND COLUMN_NAME='photos_per_product'");
+ $photosColumn->execute();
+ if(!(int)$photosColumn->fetchColumn()){
+  try{$db->exec("ALTER TABLE ds_subscription_plans ADD COLUMN photos_per_product TINYINT UNSIGNED NOT NULL DEFAULT 6");}
+  catch(PDOException $e){if(($e->errorInfo[1]??null)!==1060)throw $e;}
+ }
  $freeLimit=max(0,(int)$db->query("SELECT setting_value FROM ds_settings WHERE setting_key='free_product_limit'")->fetchColumn());
  $seed=$db->prepare("INSERT IGNORE INTO ds_subscription_plans
  (code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,features_json,active,sort_order)
@@ -104,7 +111,7 @@ function attachProductPhotos(array &$products,array $photos):void{
  unset($product);
 }
 function subscriptionPlans(PDO $db):array{
- $rows=$db->query('SELECT id,code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,features_json,active,sort_order FROM ds_subscription_plans ORDER BY sort_order,id')->fetchAll();
+ $rows=$db->query('SELECT id,code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,photos_per_product,features_json,active,sort_order FROM ds_subscription_plans ORDER BY sort_order,id')->fetchAll();
  foreach($rows as &$row){
   $features=json_decode((string)$row['features_json'],true);
   $row['features']=is_array($features)?$features:[];
@@ -356,6 +363,38 @@ try{
    session_regenerate_id(true);
    respond(['ok'=>true,'message'=>'Password updated successfully.']);
   }
+  if($action==='plan-delete'){
+   $id=filter_var($d['id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+   if($id===false||$id===null)respond(['error'=>'Invalid plan'],422);
+   $db->beginTransaction();
+   try{
+    $q=$db->prepare('SELECT id,code,active FROM ds_subscription_plans WHERE id=? FOR UPDATE');
+    $q->execute([$id]);$plan=$q->fetch(PDO::FETCH_ASSOC);
+    if(!$plan){$db->rollBack();respond(['error'=>'Plan not found'],404);}
+    if(in_array($plan['code'],['free','pro'],true)){
+     $db->rollBack();respond(['error'=>'Free and Pro are protected plans and cannot be deleted'],422);
+    }
+    if((int)$plan['active']===1){
+     $db->rollBack();respond(['error'=>'Deactivate the plan before deleting it'],422);
+    }
+    // Future subscription-assignment tables must not be orphaned by plan removal.
+    $refs=$db->prepare("SELECT TABLE_NAME,COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('ds_subscriptions','ds_seller_subscriptions','ds_shop_subscriptions','ds_subscription_payments') AND COLUMN_NAME IN ('plan_id','subscription_plan_id')");
+    $refs->execute();
+    foreach($refs->fetchAll(PDO::FETCH_ASSOC) as $ref){
+     $table=$ref['TABLE_NAME'];$col=$ref['COLUMN_NAME'];
+     $q=$db->prepare("SELECT COUNT(*) FROM `$table` WHERE `$col`=?");
+     $q->execute([$id]);
+     if((int)$q->fetchColumn()>0){
+      $db->rollBack();respond(['error'=>'Plan is linked to subscriptions or payments and cannot be deleted'],409);
+     }
+    }
+    $q=$db->prepare('DELETE FROM ds_subscription_plans WHERE id=? AND code NOT IN (\'free\',\'pro\') AND active=0');
+    $q->execute([$id]);
+    if($q->rowCount()!==1)throw new RuntimeException('Plan deletion failed');
+    $db->commit();
+   }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+   respond(['ok'=>true]);
+  }
   if($action==='plan-save'){
    $id=filter_var($d['id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);
    $name=clean($d['name']??'',100);
@@ -363,10 +402,11 @@ try{
    $annual=planMoney($d['annual_price']??'');
    $products=planLimit($d['product_limit']??null);
    $catalogues=planLimit($d['catalogue_limit']??null);
+   $photos=filter_var($d['photos_per_product']??6,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>6]]);
    $sort=filter_var($d['sort_order']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>999999]]);
    $features=$d['features']??null;
-   if($id===false||!$name||$monthly===null||$annual===null||$products===false||$catalogues===false||$sort===false||!is_array($features))respond(['error'=>'Enter valid plan details, prices and limits'],422);
-   $featureKeys=['analytics','whatsapp_status','catalogue_pdf','remove_branding'];
+   if($id===false||!$name||$monthly===null||$annual===null||$products===false||$catalogues===false||$photos===false||$sort===false||!is_array($features))respond(['error'=>'Enter valid plan details, prices and limits'],422);
+   $featureKeys=['analytics','whatsapp_status','enquiry_inbox','excel_import','gallery_upload','catalogue_pdf','remove_branding'];
    if(array_diff(array_keys($features),$featureKeys))respond(['error'=>'Unknown plan feature'],422);
    $flags=[];
    foreach($featureKeys as $key){
@@ -397,11 +437,11 @@ try{
     }
     $json=json_encode($flags,JSON_THROW_ON_ERROR);
     if($id>0){
-     $q=$db->prepare('UPDATE ds_subscription_plans SET name=?,monthly_price=?,annual_price=?,product_limit=?,catalogue_limit=?,features_json=?,active=?,sort_order=? WHERE id=?');
-     $q->execute([$name,$monthly,$annual,$products,$catalogues,$json,$active?1:0,$sort,$id]);
+     $q=$db->prepare('UPDATE ds_subscription_plans SET name=?,monthly_price=?,annual_price=?,product_limit=?,catalogue_limit=?,photos_per_product=?,features_json=?,active=?,sort_order=? WHERE id=?');
+     $q->execute([$name,$monthly,$annual,$products,$catalogues,$photos,$json,$active?1:0,$sort,$id]);
     }else{
-     $q=$db->prepare('INSERT INTO ds_subscription_plans(code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,features_json,active,sort_order) VALUES(?,?,?,?,?,?,?,?,?,?)');
-     $q->execute([$code,$name,'',$monthly,$annual,$products,$catalogues,$json,$active?1:0,$sort]);
+     $q=$db->prepare('INSERT INTO ds_subscription_plans(code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,photos_per_product,features_json,active,sort_order) VALUES(?,?,?,?,?,?,?,?,?,?,?)');
+     $q->execute([$code,$name,'',$monthly,$annual,$products,$catalogues,$photos,$json,$active?1:0,$sort]);
      $id=(int)$db->lastInsertId();
     }
     $db->commit();
