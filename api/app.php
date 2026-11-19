@@ -85,6 +85,13 @@ try{
  if($action==='logout'){$_SESSION=[];session_regenerate_id(true);respond(['ok'=>true]);}
  $u=currentUser($db);if(!$u)respond(['error'=>'Please sign in'],401);
  $d=body();
+ if($action==='account-name'){
+  $name=clean($d['name']??'',150);
+  if(!$name)respond(['error'=>'Please enter your name'],422);
+  $q=$db->prepare('UPDATE ds_users SET name=? WHERE id=?');
+  $q->execute([$name,(int)$u['id']]);
+  respond(['ok'=>true,'name'=>$name]);
+ }
  if($u['role']==='admin'){
   if($action==='settings'){
    $n=filter_var($d['free_product_limit']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>100000]]);
