@@ -28,7 +28,11 @@ New shop registrations create Seller accounts only. You can create a **separate 
 
 1. Generate a high-entropy setup token locally (minimum 32 characters). On Windows PowerShell:
    ```powershell
-   ([System.BitConverter]::ToString([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))).Replace('-', '')
+   $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+   $bytes = New-Object byte[] 32
+   $rng.GetBytes($bytes)
+   [System.BitConverter]::ToString($bytes).Replace('-', '')
+   $rng.Dispose()
    ```
    Keep the token private and do not commit it.
 2. GitHub repository → Settings → Secrets and variables → Actions → New repository secret. Name: `ADMIN_SETUP_TOKEN`. Value: generated token.
