@@ -193,3 +193,34 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
 .product-import-notice[hidden]{display:none}
 .product-import-notice.error{padding:9px 12px;border-radius:8px;background:#fff0f1;color:#a62435}
 @media(max-width:640px){.product-import-panel{padding:14px}.product-import-heading{align-items:center;flex-wrap:wrap}.product-import-actions .btn{min-height:39px}}
+
+/* Consistent, compact Add Product, Catalogue, and Subscription pages. */
+.product-quick-form .product-photo-field{margin-bottom:10px}
+.product-quick-form #productImageFile{padding:7px 10px;min-height:43px}
+.product-quick-form #productImageFile::file-selector-button{border:1px solid #a6b6c9;border-radius:5px;padding:5px 10px;background:#eef3fa;color:#163656;margin-right:11px;cursor:pointer}
+.product-quick-form #productGalleryMessage:empty{display:none}
+.product-quick-form .product-more{margin:5px 0 12px;padding:10px 14px}
+.product-quick-form .product-save-row{margin-top:12px}
+.product-visibility{display:inline-flex;align-items:center;gap:10px;font-size:13px;font-weight:650;color:#173052;cursor:pointer;margin:1px 0 5px}
+.product-visibility input[type=checkbox]{appearance:auto;-webkit-appearance:checkbox;width:17px;height:17px;min-width:17px;min-height:17px;margin:0;accent-color:#0862df;flex:0 0 auto}
+.catalogue-form .catalogue-product-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;border:1px solid #dbe5f2;border-radius:10px;padding:10px;max-height:260px;overflow:auto}
+.catalogue-product-choice{display:flex!important;align-items:center;gap:10px;padding:9px 10px;margin:0!important;min-height:40px;min-width:0;border:1px solid #e3eaf4;border-radius:8px;cursor:pointer;font-size:13px;font-weight:550;color:#173052}
+.catalogue-product-choice:hover{background:#f4f8ff}
+.catalogue-product-choice input[type=checkbox]{appearance:auto;-webkit-appearance:checkbox;width:17px!important;height:17px!important;min-width:17px!important;min-height:17px!important;flex:0 0 17px;margin:0!important;padding:0!important;accent-color:#0862df}
+.catalogue-product-choice span{min-width:0;overflow-wrap:anywhere}
+.catalogue-form .catalogue-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:12px}
+.catalogue-form .field{margin-bottom:12px}
+.subscription-panel{padding:18px 20px}
+.subscription-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.subscription-metric{padding:17px 19px;border:1px solid #dbe5f2;border-radius:12px;background:#f5f9ff}
+.subscription-metric:first-child{background:#eef9f2;border-color:#daeadf}
+.subscription-metric>span{display:block;color:#415a77;font-size:13px;font-weight:600}
+.subscription-metric strong{display:block;font-size:27px;color:#0c2245;margin-top:5px}
+.subscription-progress{height:7px;background:#d9e6f8;border-radius:10px;margin-top:12px;overflow:hidden}
+.subscription-progress span{display:block;height:100%;background:#0862df;border-radius:10px}
+.subscription-footnote{margin:14px 0 0;color:#526b89;font-size:13px}
+@media(max-width:640px){
+ .catalogue-form .catalogue-product-list,.subscription-grid{grid-template-columns:minmax(0,1fr)}
+ .subscription-panel{padding:14px}
+ .catalogue-product-choice{min-height:44px}
+}
