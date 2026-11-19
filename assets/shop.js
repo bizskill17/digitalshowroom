@@ -5,6 +5,33 @@ let data=null,category=0,cart={};
 // Support both /bca-momo-wala and the original /shop.html?slug=bca-momo-wala.
 const params=new URLSearchParams(location.search);
 const slug=params.get('slug')||decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g,'')).toLowerCase();
+const trackedProductViews=new Set();
+function trackShowroomEvent(type,productId){
+ if(!data)return;
+ const payload={slug:data.shop.slug,type};
+ if(type==='product_view')payload.product_id=Number(productId);
+ fetch('/api/app.php?action=track-event',{
+  method:'POST',credentials:'same-origin',
+  headers:{'Content-Type':'application/json','X-CSRF-Token':data.csrf},
+  body:JSON.stringify(payload)
+ }).catch(()=>{});
+}
+function observeProductViews(){
+ if(!('IntersectionObserver' in window))return;
+ const observer=new IntersectionObserver((entries,watcher)=>{
+  for(const entry of entries){
+   if(!entry.isIntersecting)continue;
+   const productId=Number(entry.target.dataset.productView);
+   if(productId&&!trackedProductViews.has(productId)){
+    trackedProductViews.add(productId);trackShowroomEvent('product_view',productId);
+   }
+   watcher.unobserve(entry.target);
+  }
+ },{threshold:0.5});
+ document.querySelectorAll('[data-product-view]').forEach(card=>{
+  if(!trackedProductViews.has(Number(card.dataset.productView)))observer.observe(card);
+ });
+}
 function count(){const picks=Object.entries(cart).filter(([id,qty])=>qty>0),qty=picks.reduce((n,[,q])=>n+q,0);let total=0,missing=false;picks.forEach(([id,q])=>{const p=data.products.find(x=>x.id==id);if(p){if(p.price===null)missing=true;else total+=Number(p.price)*q;}});$('selectedCount').textContent=qty?qty+' items selected':'No items selected';$('selectedTotal').textContent=qty?(missing?'Price on request for some items':'Estimated total ₹'+total.toFixed(2)):'Select products to enquire';}
 function render(){
  document.title=data.shop.name+' | Digital Showroom';
@@ -15,7 +42,7 @@ function render(){
  $('shopHeader').innerHTML=(s.logo_url?'<img src="'+esc(s.logo_url)+'" alt="" style="width:78px;height:78px;object-fit:cover;border-radius:50%;background:white">':'<div style="font-size:56px">🏬</div>')+'<div><h1>'+esc(s.name)+'</h1><p style="margin:6px 0">'+esc(s.tagline)+'</p><small>'+esc(s.address)+'</small></div>';
  $('filter').innerHTML='<button class="'+(!category?'active':'')+'" data-category="0">All Products</button>'+data.categories.map(c=>'<button class="'+(category==c.id?'active':'')+'" data-category="'+c.id+'">'+esc(c.name)+'</button>').join('');
  const shown=data.products.filter(p=>!category||p.category_id==category);
- $('products').innerHTML=shown.length?shown.map(p=>'<article class="product-card">'+(p.image_url?'<div class="product-photo-display"><img class="product-main-photo" src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" loading="lazy">'+((p.images||[]).length>1?'<div class="shop-photo-thumbs">'+p.images.map((url,i)=>'<button type="button" class="shop-photo-thumb '+(!i?'selected':'')+'" data-image="'+esc(url)+'" aria-label="View photo '+(i+1)+' of '+esc(p.name)+'"><img src="'+esc(url)+'" alt="" loading="lazy"></button>').join('')+'</div>':'')+'</div>':'<div style="background:#ffe5ed;height:190px;display:grid;place-items:center;font-size:55px">🛍️</div>')+'<div class="details"><h3>'+esc(p.name)+'</h3><p class="muted">'+esc(p.description)+'</p><div class="inline-actions" style="justify-content:space-between"><b>'+(p.price===null?'On request':'₹'+Number(p.price).toFixed(2))+' / '+esc(p.unit||'Piece')+'</b><div class="inline-actions"><button class="btn sm soft" data-dec="'+p.id+'">−</button><b>'+Number(cart[p.id]||0)+'</b><button class="btn sm primary" data-inc="'+p.id+'">+</button></div></div></div></article>').join(''):'<p>No products in this category.</p>';
+ $('products').innerHTML=shown.length?shown.map(p=>'<article class="product-card" data-product-view="'+Number(p.id)+'">'+(p.image_url?'<div class="product-photo-display"><img class="product-main-photo" src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" loading="lazy">'+((p.images||[]).length>1?'<div class="shop-photo-thumbs">'+p.images.map((url,i)=>'<button type="button" class="shop-photo-thumb '+(!i?'selected':'')+'" data-image="'+esc(url)+'" aria-label="View photo '+(i+1)+' of '+esc(p.name)+'"><img src="'+esc(url)+'" alt="" loading="lazy"></button>').join('')+'</div>':'')+'</div>':'<div style="background:#ffe5ed;height:190px;display:grid;place-items:center;font-size:55px">🛍️</div>')+'<div class="details"><h3>'+esc(p.name)+'</h3><p class="muted">'+esc(p.description)+'</p><div class="inline-actions" style="justify-content:space-between"><b>'+(p.price===null?'On request':'₹'+Number(p.price).toFixed(2))+' / '+esc(p.unit||'Piece')+'</b><div class="inline-actions"><button class="btn sm soft" data-dec="'+p.id+'">−</button><b>'+Number(cart[p.id]||0)+'</b><button class="btn sm primary" data-inc="'+p.id+'">+</button></div></div></div></article>').join(''):'<p>No products in this category.</p>';
  document.querySelectorAll('.shop-photo-thumb').forEach(button=>button.onclick=()=>{
   const frame=button.closest('.product-photo-display'),main=frame?.querySelector('.product-main-photo');
   if(!main)return;
@@ -26,6 +53,7 @@ function render(){
  document.querySelectorAll('[data-inc]').forEach(b=>b.onclick=()=>{cart[b.dataset.inc]=(cart[b.dataset.inc]||0)+1;render()});
  document.querySelectorAll('[data-dec]').forEach(b=>b.onclick=()=>{cart[b.dataset.dec]=Math.max(0,(cart[b.dataset.dec]||0)-1);render()});
  count();
+ observeProductViews();
 }
 let enquiryPending=false,enquiryQuote=false;
 const enquiryDialog=$('enquiryDialog'),enquiryForm=$('enquiryForm');
@@ -36,6 +64,7 @@ function openCustomerDetails(quote){
  const phone=String(data.shop.phone||'').replace(/\D/g,'');
  if(phone.length<10){alert('Shop WhatsApp number is unavailable.');return;}
  enquiryQuote=quote;
+ trackShowroomEvent('whatsapp_click');
  $('enquiryDialogTitle').textContent=quote?'Customer Details — Quotation':'Customer Details — Order';
  $('enquiryMessage').hidden=true;$('enquiryMessage').textContent='';
  if(typeof enquiryDialog.showModal==='function')enquiryDialog.showModal();
@@ -102,4 +131,4 @@ enquiryForm.addEventListener('submit',async event=>{
 });
 $('orderBtn').onclick=()=>openCustomerDetails(false);
 $('quoteBtn').onclick=()=>openCustomerDetails(true);
-fetch('/api/app.php?action=public&slug='+encodeURIComponent(slug),{credentials:'same-origin'}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.error||'Shop unavailable');data=d;render()}).catch(e=>{$('shopHeader').innerHTML='<h1>Shop unavailable</h1>';$('shopError').innerHTML='<p class="notice error">'+esc(e.message)+'</p>'});
+fetch('/api/app.php?action=public&slug='+encodeURIComponent(slug),{credentials:'same-origin'}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.error||'Shop unavailable');data=d;render();trackShowroomEvent('visit')}).catch(e=>{$('shopHeader').innerHTML='<h1>Shop unavailable</h1>';$('shopError').innerHTML='<p class="notice error">'+esc(e.message)+'</p>'});
