@@ -499,13 +499,82 @@ function statusPanel(){
  '<div id="statusOutput" class="status-results"></div>');
 }
 function adminDashboard(){
- const s=data.stats;return '<div class="stats">'+stat('Registered Sellers',s.sellers,'blue')+stat('Shops',s.shops,'green')+stat('Products',s.products,'amber')+stat('Free Product Limit',s.free_product_limit,'purple','Products per shop')+'</div><div class="columns"><div>'+adminShops()+'</div><div>'+panel('Platform Settings','<p>Free Product Limit: <b>'+s.free_product_limit+'</b></p>'+button('Change Limit','nav-settings','primary'))+panel('Subscriptions','<p class="muted">Paid subscriptions and Razorpay are planned for the next development phase.</p>')+'</div></div>';
+ const s=data.stats;return '<div class="stats">'+stat('Registered Sellers',s.sellers,'blue')+stat('Shops',s.shops,'green')+stat('Products',s.products,'amber')+stat('Free Product Limit',s.free_product_limit,'purple','Products per shop')+'</div><div class="columns"><div>'+adminShops()+'</div><div>'+panel('Platform Settings','<p>Free Product Limit: <b>'+s.free_product_limit+'</b></p>'+button('Manage Plans','nav-plans','primary'))+panel('Subscriptions','<p class="muted">Paid subscriptions and Razorpay are planned for the next development phase.</p>')+'</div></div>';
 }
 function adminShops(){
  const rows=data.shops.map(s=>'<tr><td>'+esc(s.owner)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.products)+'</td><td><span class="pill '+(!+s.active?'off':'')+'">'+(+s.active?'Active':'Disabled')+'</span></td><td>'+button(+s.active?'Disable':'Enable','status-'+s.id+'-'+(+s.active?0:1),'outline')+' <a target="_blank" class="btn sm soft" href="/'+encodeURIComponent(s.slug)+'">View</a></td></tr>').join('');
  return panel('Seller & Shop Management',wrapTable(['Seller','Shop','Products','Status','Actions'],rows));
 }
-function adminSettings(){return panel('Platform Settings','<form id="settingsForm">'+field('Free Product Limit','freeLimit',data.stats.free_product_limit,'text','inputmode="numeric" pattern="[0-9]+" maxlength="6" required')+'<p class="hint">Changing this limit affects the allowed number of products for free sellers. Existing products are not deleted.</p><button type="submit" class="btn primary">Save Settings</button></form>');}
+let planRecords=[],plansLoaded=false,plansLoading=false,plansError='',planEditing=null;
+const planFeatureNames=[['analytics','Analytics'],['whatsapp_status','WhatsApp Status'],['catalogue_pdf','Catalogue PDF'],['remove_branding','Remove Showroom Branding']];
+function planText(value){return value===null||value===undefined?'Unlimited':String(value);}
+function adminPlans(){
+ if(plansError)return panel('Subscription Plans','<div class="notice error">'+esc(plansError)+'</div>'+button('Retry','retry-plans','primary'));
+ if(!plansLoaded)return panel('Subscription Plans','<p class="muted">Loading plans...</p>');
+ const rows=planRecords.map(p=>{
+  const monthly=Number(p.monthly_price).toFixed(2),annual=Number(p.annual_price).toFixed(2);
+  return '<tr><td><strong>'+esc(p.name)+'</strong><small class="plan-code">'+esc(p.code)+'</small></td>'+
+  '<td>₹'+monthly+'</td><td>₹'+annual+'</td><td>'+esc(planText(p.product_limit))+'</td>'+
+  '<td>'+esc(planText(p.catalogue_limit))+'</td><td><span class="pill '+(!Number(p.active)?'off':'')+'">'+(Number(p.active)?'Active':'Inactive')+'</span></td>'+
+  '<td><button class="btn sm soft" type="button" data-edit-plan="'+Number(p.id)+'">Edit</button></td></tr>';
+ }).join('');
+ const table='<div class="table-wrap"><table class="data-table plan-master-table"><thead><tr><th>Plan</th><th>Monthly (₹)</th><th>Annual (₹)</th><th>Products</th><th>Catalogues</th><th>Status</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+ return '<section class="panel plan-master-panel"><div class="panel-head"><h2>Subscription Plans</h2><button class="btn primary" type="button" id="addPlan">+ Add Plan</button></div>'+table+'<div id="planEditorArea"></div></section>';
+}
+function planEditor(id){
+ const plan=id?planRecords.find(p=>Number(p.id)===Number(id)):null;
+ if(id&&!plan)return;
+ planEditing=plan||null;
+ const free=plan?.code==='free',editing=!!plan;
+ const features=plan?.features||{analytics:true,whatsapp_status:true,catalogue_pdf:false,remove_branding:false};
+ const checkbox=(name,label)=>'<label class="plan-feature"><input type="checkbox" data-plan-feature="'+name+'" '+(features[name]?'checked':'')+'>'+label+'</label>';
+ const val=(value)=>esc(value===null||value===undefined?'':value);
+ const form='<form id="planForm"><div class="panel-head"><h2>'+(editing?'Edit Plan':'Add Plan')+'</h2><button type="button" class="btn sm soft" id="cancelPlan">Cancel</button></div>'+
+ '<div class="form-grid">'+
+ '<div class="field"><label for="planName">Plan Name *</label><input id="planName" maxlength="100" required value="'+val(plan?.name)+'"></div>'+
+ '<div class="field"><label for="planCode">Plan Code *</label><input id="planCode" maxlength="60" pattern="[a-z][a-z0-9-]+" required '+(editing?'readonly':'')+' value="'+val(plan?.code)+'"></div>'+
+ '<div class="field"><label for="planMonthly">Monthly Price (₹) *</label><input id="planMonthly" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" required '+(free?'readonly':'')+' value="'+val(plan?.monthly_price??'0.00')+'"></div>'+
+ '<div class="field"><label for="planAnnual">Annual Price (₹) *</label><input id="planAnnual" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" required '+(free?'readonly':'')+' value="'+val(plan?.annual_price??'0.00')+'"></div>'+
+ '<div class="field"><label for="planProductLimit">Product Limit'+(free?' *':'')+'</label><input id="planProductLimit" inputmode="numeric" pattern="[0-9]+" '+(free?'required':'')+' value="'+val(plan?.product_limit)+'"></div>'+
+ '<div class="field"><label for="planCatalogueLimit">Catalogue Limit</label><input id="planCatalogueLimit" inputmode="numeric" pattern="[0-9]+" value="'+val(plan?.catalogue_limit)+'"></div>'+
+ '<div class="field"><label for="planSort">Display Order</label><input id="planSort" inputmode="numeric" pattern="[0-9]+" value="'+val(plan?.sort_order??30)+'" required></div>'+
+ '<div class="field"><label for="planDescription">Description</label><input id="planDescription" maxlength="255" value="'+val(plan?.description)+'"></div>'+
+ '</div><div class="plan-feature-head">Plan Features</div><div class="plan-feature-grid">'+planFeatureNames.map(([k,n])=>checkbox(k,n)).join('')+'</div>'+
+ '<label class="plan-feature plan-active"><input type="checkbox" id="planActive" '+(free?'checked disabled':Number(plan?.active)?'checked':'')+'>Active</label>'+
+ '<div class="plan-editor-actions"><button class="btn primary" type="submit" id="planSave">Save Plan</button><span id="planMessage" role="alert" aria-live="polite"></span></div></form>';
+ const area=$('planEditorArea');if(!area)return;area.innerHTML=form;area.scrollIntoView({block:'nearest'});
+ $('cancelPlan').onclick=()=>{planEditing=null;area.replaceChildren();};
+ $('planForm').onsubmit=savePlan;
+}
+async function savePlan(event){
+ event.preventDefault();
+ const form=$('planForm'),save=$('planSave'),msg=$('planMessage');
+ if(!form||!save)return;
+ const free=planEditing?.code==='free';
+ const features=Object.fromEntries(planFeatureNames.map(([key])=>[key,!!form.querySelector('[data-plan-feature="'+key+'"]')?.checked]));
+ const payload={id:Number(planEditing?.id||0),name:$('planName').value.trim(),code:$('planCode').value.trim().toLowerCase(),monthly_price:$('planMonthly').value.trim(),annual_price:$('planAnnual').value.trim(),product_limit:$('planProductLimit').value.trim(),catalogue_limit:$('planCatalogueLimit').value.trim(),sort_order:$('planSort').value.trim(),description:$('planDescription').value.trim(),features,active:free||$('planActive').checked};
+ save.disabled=true;save.textContent='Saving...';msg.textContent='';
+ try{
+  await api('plan-save',payload);
+  plansLoaded=false;planEditing=null;
+  await loadPlans();
+  // Keep Admin dashboard Free limit metric in sync.
+  if(data?.role==='admin')data.stats.free_product_limit=Number(planRecords.find(p=>p.code==='free')?.product_limit||0);
+  flash('Plan saved successfully');
+ }catch(error){msg.textContent=error.message||'Plan not saved';msg.className='plan-form-error';save.disabled=false;save.textContent='Save Plan';}
+}
+async function loadPlans(){
+ if(plansLoading)return;
+ plansLoading=true;plansError='';
+ try{const result=await api('subscription-plans');planRecords=result.plans||[];plansLoaded=true;}
+ catch(error){plansError=error.message;plansLoaded=false;}
+ finally{plansLoading=false;if(view==='plans'&&data?.role==='admin')render();}
+}
+function wirePlans(){
+ const add=$('addPlan');if(add)add.onclick=()=>planEditor(0);
+ document.querySelectorAll('[data-edit-plan]').forEach(btn=>btn.onclick=()=>planEditor(Number(btn.dataset.editPlan)));
+}
+function adminSettings(){return panel('Platform Settings','<p>Free Product Limit: <strong>'+Number(data.stats.free_product_limit)+'</strong></p><p class="hint">Manage limits and subscription features in Subscription Plans.</p>'+button('Manage Plans','nav-plans','primary'));}
 function render(){
  nav();
  let html='',name='Dashboard';
@@ -513,7 +582,7 @@ function render(){
   if(view==='dashboard')html=adminDashboard();
   else if(view==='shops'){name='Seller & Shop Management';html=adminShops();}
   else if(view==='settings'){name='Platform Settings';html=adminSettings();}
-  else if(view==='plans'){name='Subscription Plans';html=panel('Subscriptions','<div class="notice">Free registration is available. Paid subscription setup and Razorpay activation are pending.</div>');}
+  else if(view==='plans'){name='Subscription Plans';html=adminPlans();if(!plansLoaded&&!plansLoading&&!plansError)queueMicrotask(loadPlans);}
   else{ name='Payments';html=panel('Razorpay Payments','<p class="muted">Razorpay has not yet been integrated. No payment records are collected.</p>');}
  }else{
   if(view==='dashboard')html=sellerDashboard();
@@ -622,6 +691,7 @@ async function uploadProductPhotos(input){
  }finally{input.value='';input.disabled=false;if(save)save.disabled=false;}
 }
 function wireForms(){
+ if(view==='plans'&&data?.role==='admin')wirePlans();
  if(view==='status'&&window.StatusMaker)window.StatusMaker.init(data.shop,data.products);
  if(view==='analytics')wireAnalytics();
 
@@ -705,6 +775,8 @@ async function doAction(action){
  if(action==='retry-enquiries'){enquiryError='';enquiryLoaded=false;render();return;}
  if(action==='nav-status'){navigateTo('status');return;}
  if(action==='nav-settings'){navigateTo('settings');return;}
+ if(action==='nav-plans'){navigateTo('plans');return;}
+ if(action==='retry-plans'){plansError='';plansLoaded=false;render();return;}
  if(action==='import-template'){downloadProductTemplate();return;}
  if(action==='import-products'){productImportRows=[];$('content').innerHTML=productImportPanel();wireForms();return;}
  if(action==='gallery-products'){clearGalleryDrafts();$('content').innerHTML=galleryImportPanel();wireForms();return;}
