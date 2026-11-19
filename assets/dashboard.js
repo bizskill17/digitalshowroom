@@ -489,7 +489,14 @@ function catalogueForm(id){
  '<div class="catalogue-actions"><button class="btn primary" type="submit">Save Catalogue</button> '+button('Cancel','cancel')+'</div></form>');
 }
 function statusPanel(){
- return sellerPanel('<div class="form-grid">'+data.products.filter(p=>+p.active).map(p=>'<label class="feature"><input type="checkbox" class="statusPick" value="'+p.id+'"> '+esc(p.name)+'</label>').join('')+'</div><p style="margin-top:18px">'+button('Generate Selected Images','generate-status','primary')+'</p><div id="statusOutput"></div>');
+ const products=data.products.filter(p=>+p.active);
+ const choices=products.map(p=>'<label class="status-product-option"><input type="checkbox" class="statusPick" value="'+Number(p.id)+'"><span>'+esc(p.name)+'</span></label>').join('');
+ return sellerPanel(
+ '<div class="status-maker-config"><div class="field"><label for="statusTemplate">Design Template</label><select id="statusTemplate"><option value="classic">Classic</option><option value="modern">Modern</option><option value="minimal">Minimal</option></select></div></div>'+
+ '<div class="status-product-heading"><strong>Select Products</strong><div class="inline-actions"><button class="btn sm soft" type="button" id="statusSelectAll">Select All</button><button class="btn sm soft" type="button" id="statusClearSelection">Clear</button></div></div>'+
+ '<div class="status-products">'+(choices||'<p class="muted">Add a visible product first.</p>')+'</div>'+
+ '<div class="status-maker-toolbar"><button class="btn primary" type="button" id="statusGenerate" '+(!products.length?'disabled':'')+'>Generate Images</button><span id="statusGeneratorMessage" role="status" aria-live="polite"></span></div>'+
+ '<div id="statusOutput" class="status-results"></div>');
 }
 function adminDashboard(){
  const s=data.stats;return '<div class="stats">'+stat('Registered Sellers',s.sellers,'blue')+stat('Shops',s.shops,'green')+stat('Products',s.products,'amber')+stat('Free Product Limit',s.free_product_limit,'purple','Products per shop')+'</div><div class="columns"><div>'+adminShops()+'</div><div>'+panel('Platform Settings','<p>Free Product Limit: <b>'+s.free_product_limit+'</b></p>'+button('Change Limit','nav-settings','primary'))+panel('Subscriptions','<p class="muted">Paid subscriptions and Razorpay are planned for the next development phase.</p>')+'</div></div>';
@@ -615,6 +622,7 @@ async function uploadProductPhotos(input){
  }finally{input.value='';input.disabled=false;if(save)save.disabled=false;}
 }
 function wireForms(){
+ if(view==='status'&&window.StatusMaker)window.StatusMaker.init(data.shop,data.products);
  if(view==='analytics')wireAnalytics();
 
  if(view==='enquiries')wireEnquiryFilters();
@@ -712,16 +720,8 @@ async function doAction(action){
  if(action==='generate-status'){generateStatus();return;}
 }
 function generateStatus(){
- const ids=[...document.querySelectorAll('.statusPick:checked')].map(e=>+e.value);
- if(!ids.length){flash('Select at least one product',true);return;}
- const selected=data.products.filter(p=>ids.includes(+p.id));const out=$('statusOutput');out.replaceChildren();
- selected.forEach(p=>{
-  const canvas=document.createElement('canvas');canvas.width=800;canvas.height=1000;const ctx=canvas.getContext('2d');
-  ctx.fillStyle='#fff5f8';ctx.fillRect(0,0,800,1000);ctx.fillStyle='#e83f7e';ctx.fillRect(0,0,800,165);
-  ctx.fillStyle='#fff';ctx.font='bold 48px Arial';ctx.fillText(data.shop.name.slice(0,24),45,100);
-  const finish=()=>{ctx.fillStyle='#3a1830';ctx.font='bold 46px Arial';ctx.fillText(p.name.slice(0,26),42,800);ctx.font='bold 37px Arial';ctx.fillText(p.price===null?'Price on request':'₹'+Number(p.price).toFixed(2),42,855);ctx.font='25px Arial';ctx.fillText('Order on WhatsApp: '+data.shop.phone,42,925);const a=document.createElement('a');a.className='btn primary';a.textContent='Download '+p.name;a.download='status-'+p.id+'.png';a.href=canvas.toDataURL('image/png');out.appendChild(a);};
-  if(p.image_url){const img=new Image();img.crossOrigin='anonymous';img.onload=()=>{try{ctx.drawImage(img,50,200,700,530)}catch(e){}try{finish()}catch(e){flash('This image host prevents download. Use an image from a CORS-enabled host.',true)}};img.onerror=finish;img.src=p.image_url;}else finish();
- });
+ if(window.StatusMaker)window.StatusMaker.generate();
+ else flash('Image generator is unavailable. Refresh the page.',true);
 }
 $('logout').onclick=async()=>{const destination=user?.role==='admin'?'/admin-login.html':'/login.html';try{await api('logout',{});}finally{location.href=destination;}};
 async function initializeDashboard(){
