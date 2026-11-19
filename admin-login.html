@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin Login | Digital Showroom</title><link rel="stylesheet" href="/assets/style.css">
+<style>
+.password-control{position:relative}.password-control input{padding-right:50px}
+.password-toggle{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:38px;height:36px;background:transparent;border:0;border-radius:8px;color:#5e7596}
+.password-toggle:hover,.password-toggle:focus-visible{background:#eaf3ff;color:#0862df}
+.admin-label{display:inline-flex;gap:7px;align-items:center;padding:7px 12px;background:#eaf2ff;border-radius:30px;color:#0754b8;font-size:13px;font-weight:750;margin-top:22px}
+</style></head>
+<body><main class="auth"><div class="auth-card">
+<a class="brand" href="/"><span class="mark">▣</span> Digital Showroom</a>
+<div class="admin-label">🔒 Administrator Access</div>
+<h1>Admin Login</h1><p class="muted">Sign in to manage the Digital Showroom platform.</p>
+<div id="message" aria-live="polite"></div>
+<form id="adminLoginForm">
+<div class="field"><label for="adminEmail">Email *</label><input id="adminEmail" type="email" maxlength="190" required autocomplete="username"></div>
+<div class="field"><label for="adminPassword">Password *</label>
+<div class="password-control"><input id="adminPassword" type="password" required autocomplete="current-password">
+<button id="toggleAdminPassword" type="button" class="password-toggle" aria-label="Show password" aria-pressed="false" title="Show password">
+<svg id="adminEyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+</button></div></div>
+<button id="adminSubmit" type="submit" class="btn primary wide">Admin Login</button>
+</form>
+<p class="hint" style="margin-top:20px"><a href="/login.html">← Seller Login</a></p>
+</div></main><script src="/assets/admin-login.js?v=1" defer></script></body></html>
