@@ -68,7 +68,7 @@ try{
  checkCsrf();
  if($action==='register'){
   $d=body();$name=clean($d['name']??'');$email=strtolower(clean($d['email']??'',190));$password=(string)($d['password']??'');$shopName=clean($d['shop_name']??'');$phone=preg_replace('/\D/','',(string)($d['phone']??''));$slug=strtolower(clean($d['slug']??'',90));
-  if(strlen($password)<10||strlen($password)>200||!filter_var($email,FILTER_VALIDATE_EMAIL)||!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/',$slug)||strlen($slug)<3||!$name||!$shopName||strlen($phone)<10||strlen($phone)>15)respond(['error'=>'Check required fields. Password must be at least 10 characters; shop link uses lowercase letters, numbers or hyphens.'],422);
+  if(strlen($password)<4||strlen($password)>200||!filter_var($email,FILTER_VALIDATE_EMAIL)||!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/',$slug)||strlen($slug)<3||!$name||!$shopName||strlen($phone)<10||strlen($phone)>15)respond(['error'=>'Check required fields. Password must be at least 4 characters; shop link uses lowercase letters, numbers or hyphens.'],422);
   $db->beginTransaction();
   try{
    $q=$db->prepare('INSERT INTO ds_users(name,email,pass_hash) VALUES(?,?,?)');$q->execute([$name,$email,password_hash($password,PASSWORD_DEFAULT)]);$uid=(int)$db->lastInsertId();
