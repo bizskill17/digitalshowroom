@@ -238,7 +238,7 @@ try{
    $rawPrice=trim((string)($row['price']??''));
    $price=null;
    if($rawPrice!==''&&mb_strtolower($rawPrice)!=='on request'){
-    if(!preg_match('/^(?:0|[1-9][0-9]{0,9})(?:\\.[0-9]{1,2})?$/',$rawPrice)||((float)$rawPrice)>9999999999)respond(['error'=>'Invalid price on row '.$line],422);
+    if(!preg_match('/^(?:0|[1-9][0-9]{0,9})(?:\.[0-9]{1,2})?$/',$rawPrice)||((float)$rawPrice)>9999999999)respond(['error'=>'Invalid price on row '.$line],422);
     $price=number_format((float)$rawPrice,2,'.','');
    }
    $rawUnit=trim((string)($row['unit']??'Piece'));
