@@ -29,7 +29,7 @@ function sellerDashboard(){
 }
 function productsPanel(short=false){
  const rows=data.products.slice(0,short?8:999).map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+esc(data.categories.find(c=>c.id==p.category_id)?.name||'—')+'</td><td>'+(p.price===null?'On request':'₹'+Number(p.price).toFixed(2))+'</td><td>'+esc(p.unit||'Piece')+'</td><td>'+esc(p.display_order??0)+'</td><td><span class="pill '+(!+p.active?'off':'')+'">'+(+p.active?'Active':'Hidden')+'</span></td><td class="actions">'+tdActions('edit-product-'+p.id,'delete-product-'+p.id)+'</td></tr>').join('');
- return panel('Products',wrapTable(['Product','Category','Price','Unit','Order','Status','Actions'],rows),button('＋ Add Product','new-product','primary')+' '+button('Import Products','import-products'));
+ return panel('Products',wrapTable(['Product','Category','Price','Unit','Order','Status','Actions'],rows),'<div class="inline-actions">'+button('Import Products','import-products')+button('＋ Add Product','new-product','primary')+'</div>');
 }
 function categoryPanel(){
  const rows=data.categories.map(c=>'<tr><td>'+esc(c.name)+'</td><td>'+data.products.filter(p=>p.category_id==c.id).length+'</td><td>'+tdActions('edit-category-'+c.id,'delete-category-'+c.id)+'</td></tr>').join('');
