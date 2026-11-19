@@ -51,6 +51,12 @@ The existing Admin → Subscription Plans page now manages subscription plan def
 - The `ds_subscription_plans` table is included in the private CLI database backup.
 - Existing Seller accounts and products are not modified or deleted.
 
+## Phase 3 — Seller Subscription Page (read-only)
+
+Seller → Subscription now displays the current Free plan, actual product and catalogue counts, product-limit progress, and a comparison of Free and configured/active plans. Values are fetched from the Admin Plan Master through a seller-authenticated read-only endpoint. The seeded Pro plan is shown as Coming Soon; an inactive plan cannot be purchased. Zero-priced draft paid plans display "Price to be announced" rather than suggesting they are free.
+
+**No checkout or plan activation is available yet.** The server returns `checkout_enabled=false` and `available_for_purchase=false` for every plan. These displayed limits and features describe proposed plans; product creation still uses the existing Free product limit for every seller. No subscription assignments, payments, product deletions, or upgrades occur in this stage.
+
 ## Functional features
 - Seller registration and login with hashed passwords, session authentication and CSRF checks
 - One shop per registered seller; public link using a unique slug
