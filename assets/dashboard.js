@@ -64,7 +64,11 @@ function adminShops(){
  const rows=data.shops.map(s=>'<tr><td>'+esc(s.owner)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.products)+'</td><td><span class="pill '+(!+s.active?'off':'')+'">'+(+s.active?'Active':'Disabled')+'</span></td><td>'+button(+s.active?'Disable':'Enable','status-'+s.id+'-'+(+s.active?0:1),'outline')+' <a target="_blank" class="btn sm soft" href="/shop.html?slug='+encodeURIComponent(s.slug)+'">View</a></td></tr>').join('');
  return panel('Seller & Shop Management',wrapTable(['Seller','Shop','Products','Status','Actions'],rows));
 }
-function adminSettings(){return panel('Platform Settings','<form id="settingsForm">'+field('Free Product Limit','freeLimit',data.stats.free_product_limit,'number','min="0" max="100000" step="1" required')+'<p class="hint">Changing this limit affects the allowed number of products for free sellers. Existing products are not deleted.</p><button type="submit" class="btn primary">Save Settings</button></form>');}
+function adminSettings(){
+ const passField=(label,id,auto)=>'<div class="field"><label for="'+id+'">'+label+' *</label><div class="password-control" style="position:relative"><input id="'+id+'" type="password" required minlength="4" maxlength="200" autocomplete="'+auto+'" style="padding-right:54px"><button type="button" class="password-toggle" data-eye="'+id+'" aria-label="Show '+label+'" aria-pressed="false" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;border:0;color:#536b88;padding:8px;cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="19" height="19" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>';
+ return panel('Platform Settings','<form id="settingsForm">'+field('Free Product Limit','freeLimit',data.stats.free_product_limit,'number','min="0" max="100000" step="1" required')+'<p class="hint">Changing this limit affects the allowed number of products for free sellers. Existing products are not deleted.</p><button type="submit" class="btn primary">Save Settings</button></form>')
+ +panel('Change Password','<form id="changePasswordForm">'+passField('Current Password','currentPassword','current-password')+passField('New Password','newPassword','new-password')+passField('Confirm New Password','confirmPassword','new-password')+'<div id="passwordMessage" role="status" aria-live="polite"></div><button type="submit" class="btn primary">Update Password</button></form>');
+}
 function render(){
  nav();
  let html='',name='Dashboard';
@@ -118,6 +122,28 @@ function wireForms(){
  };}
  {const f=$('catalogueForm');if(f)f.onsubmit=e=>{e.preventDefault();post('catalogue-save',{id:f.dataset.id?+f.dataset.id:0,name:$('catalogueName').value,product_ids:[...document.querySelectorAll('[name="catalogueProduct"]:checked')].map(x=>+x.value)});};}
  {const f=$('settingsForm');if(f)f.onsubmit=e=>{e.preventDefault();post('settings',{free_product_limit:Number($('freeLimit').value)});};}
+ {const f=$('changePasswordForm');if(f)f.onsubmit=async e=>{
+  e.preventDefault();
+  const current=$('currentPassword').value,newPassword=$('newPassword').value,confirm=$('confirmPassword').value;
+  const msg=$('passwordMessage');
+  const show=(message,bad=false)=>{msg.className='notice '+(bad?'error':'success');msg.textContent=message;};
+  if(newPassword.length<4){show('New password must be at least 4 characters.',true);return;}
+  if(newPassword!==confirm){show('New Password and Confirm New Password do not match.',true);return;}
+  const btn=f.querySelector('[type="submit"]');btn.disabled=true;btn.textContent='Updating...';
+  try{
+   const result=await api('change-password',{current_password:current,new_password:newPassword,confirm_password:confirm});
+   f.reset();show(result.message||'Password updated successfully.');
+  }catch(err){show(err.message,true);}
+  finally{btn.disabled=false;btn.textContent='Update Password';}
+ };}
+ document.querySelectorAll('[data-eye]').forEach(button=>button.onclick=()=>{
+  const input=$(button.dataset.eye);if(!input)return;
+  const show=input.type==='password';input.type=show?'text':'password';
+  const name=button.dataset.eye==='currentPassword'?'Current Password':button.dataset.eye==='newPassword'?'New Password':'Confirm New Password';
+  button.setAttribute('aria-label',(show?'Hide ':'Show ')+name);
+  button.setAttribute('aria-pressed',String(show));
+  button.innerHTML=show?'<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1"/><path d="M6.3 6.3C3.6 8.3 2 12 2 12s3.5 7 10 7a10.7 10.7 0 0 0 4.1-.8"/><path d="M10 10a3 3 0 0 0 4 4"/></svg>':'<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+ });
 }
 async function doAction(action){
  if(action==='copyLink'){try{await navigator.clipboard.writeText(shopUrl());flash('Shop link copied');}catch(e){flash('Copy unavailable in this browser',true)}return;}
