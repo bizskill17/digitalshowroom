@@ -1,0 +1,11 @@
+# Digital Showroom: friendly links for public shops.
+# Existing /shop.html?slug=... links continue to work.
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# Never rewrite existing files or folders (API, uploads, assets, admin, etc.).
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+# Only one path segment matching the allowed registered shop slug format.
+RewriteRule ^([a-z0-9]+(?:-[a-z0-9]+)*)/?$ /shop.html?slug=$1 [L,QSA,NC]
+</IfModule>
