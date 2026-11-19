@@ -531,7 +531,7 @@ function planEditor(id){
  if(id&&!plan)return;
  planEditing=plan||null;
  const free=plan?.code==='free',editing=!!plan;
- const features=plan?.features||{analytics:true,whatsapp_status:true,catalogue_pdf:false,remove_branding:false};
+ const features=plan?.features||{analytics:true,whatsapp_status:true,enquiry_inbox:true,excel_import:false,gallery_upload:false,catalogue_pdf:false,remove_branding:false};
  const checkbox=(name,label)=>'<label class="plan-feature"><input type="checkbox" data-plan-feature="'+name+'" '+(features[name]?'checked':'')+'>'+label+'</label>';
  const val=(value)=>esc(value===null||value===undefined?'':value);
  const form='<form id="planForm"><div class="panel-head"><h2 id="planEditorTitle">'+(editing?'Edit Plan':'Add Plan')+'</h2><button type="button" class="btn sm soft" id="cancelPlan">Cancel</button></div>'+
