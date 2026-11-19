@@ -105,9 +105,20 @@ try{
  if($action==='category-save'){
   $name=clean($d['name']??'',120);$id=(int)($d['id']??0);
   if(!$name)respond(['error'=>'Category name required'],422);
-  if($id){if(!belongs($db,'ds_categories',$id,$sid))respond(['error'=>'Not found'],404);$q=$db->prepare('UPDATE ds_categories SET name=? WHERE id=?');$q->execute([$name,$id]);}
-  else{$q=$db->prepare('INSERT INTO ds_categories(shop_id,name) VALUES(?,?)');$q->execute([$sid,$name]);}
-  respond(['ok'=>true]);
+  if($id){
+   if(!belongs($db,'ds_categories',$id,$sid))respond(['error'=>'Category not found'],404);
+   $q=$db->prepare('UPDATE ds_categories SET name=? WHERE id=? AND shop_id=?');
+   $q->execute([$name,$id,$sid]);
+  }else{
+   $q=$db->prepare('INSERT INTO ds_categories(shop_id,name) VALUES(?,?)');
+   $q->execute([$sid,$name]);
+   $id=(int)$db->lastInsertId();
+  }
+  $q=$db->prepare('SELECT id,name FROM ds_categories WHERE id=? AND shop_id=?');
+  $q->execute([$id,$sid]);
+  $saved=$q->fetch();
+  if(!$saved)respond(['error'=>'Category could not be verified after saving'],500);
+  respond(['ok'=>true,'category'=>$saved]);
  }
  if($action==='category-delete'){
   $id=(int)($d['id']??0);if(!belongs($db,'ds_categories',$id,$sid))respond(['error'=>'Not found'],404);
