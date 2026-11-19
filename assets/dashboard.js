@@ -76,9 +76,8 @@ function parseProductCsv(text){
 }
 function productImportPanel(){
  return panel('Import Products',
-  '<div class="inline-actions">'+button('Download Template','import-template')+'</div>'+
-  '<div class="field"><label for="importCsvFile">Choose Excel CSV File</label><input type="file" id="importCsvFile" accept=".csv,text/csv"></div>'+
-  '<div id="productImportNotice" class="hint" role="status">Save the template as CSV UTF-8 from Excel. Categories must already exist. Price may be blank or On Request. Photos can be added after import. Existing products are never overwritten.</div>'+
+  '<div class="field"><div class="inline-actions" style="justify-content:space-between;margin-bottom:7px"><label for="importCsvFile" style="margin:0">Choose Excel CSV File</label>'+button('Download Template','import-template')+'</div><input type="file" id="importCsvFile" accept=".csv,text/csv"></div>'+
+  '<div id="productImportNotice" class="hint" role="status" aria-live="polite"></div>'+
   '<div id="productImportPreview"></div><div class="inline-actions" style="margin-top:14px">'+
   '<button type="button" id="importSave" class="btn primary" disabled>Import Products</button> '+
   button('Cancel','cancel')+'</div>');
