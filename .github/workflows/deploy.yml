@@ -130,6 +130,11 @@ jobs:
           # Always replace the dashboard assets; FTP timestamps can otherwise leave older code in place.
           put assets/dashboard.js -o ./assets/dashboard.js
           put dashboard.html -o ./dashboard.html
+          # Ensure new friendly shop routes and public assets are not skipped by FTP timestamp differences.
+          put .htaccess -o ./.htaccess
+          put shop.html -o ./shop.html
+          put assets/shop.js -o ./assets/shop.js
+          put assets/login.js -o ./assets/login.js
           bye
           LFTP
 
