@@ -19,6 +19,7 @@ A multi-seller WhatsApp-first showroom application on Hostinger PHP/MySQL.
 - Product images using authenticated JPG/PNG/WebP uploads (max 5 MB) or existing external HTTPS URLs
 - Product photo gallery: select multiple images at once, up to 6 per product, automatically compress uploaded product photos, choose the main image and show thumbnails on public shop pages; original product image URLs are preserved
 - Photo gallery entries live in `ds_product_images` and are included in `scripts/backup.php`
+- Excel-compatible CSV bulk product import under Seller → Products → Import Products: download the template, enter up to 100 products and preview before saving. Save as **CSV UTF-8** from Excel. CSV can include product name, an existing category, price or 'On Request', unit, description, display order, visibility. The import is all-or-nothing, checks quota and duplicate names, and never overwrites existing products. Photos are added later via Edit Product.
 - Dynamic public showroom, quantity selection, WhatsApp order/quotation message
 - Basic canvas-based product status image generation
 - Administrator dashboard: sellers/shops, enable/disable shops and global free product allowance
@@ -57,7 +58,7 @@ If you already have an Admin account, the setup page cannot create another one. 
 
 ## Not implemented yet
 - Razorpay payments, paid subscription activation/renewals and per-shop plan limits
-- A full media library and bulk creation of *multiple product records* from mobile gallery or Excel (multiple photos for one product are now supported)
+- A full media library, native `.xlsx` parsing and bulk creation of separate product records directly from mobile gallery (CSV product import and multiple photos for one product are supported)
 - Password reset/email verification, registration throttling and audit logs
 - Advanced catalogue PDF/ZIP generation in the new dashboard (the original demo remains at `/demo.html`)
 - Order management/payment collection (buyers currently send WhatsApp messages)
