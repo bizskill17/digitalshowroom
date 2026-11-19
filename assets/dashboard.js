@@ -89,7 +89,42 @@ function render(){
 }
 async function refresh(){data=await api('dashboard');if(!(data.role==='admin'?adminViews:sellerViews).includes(view))view='dashboard';render();}
 async function post(action,payload,success){try{await api(action,payload);flash(success||'Saved successfully');await refresh();}catch(e){flash(e.message,true)}}
-async function uploadImage(input,target){if(!input.files||!input.files[0])return;const fd=new FormData();fd.append('image',input.files[0]);input.disabled=true;try{const res=await fetch('/api/upload.php',{method:'POST',headers:{'X-CSRF-Token':csrf},body:fd,credentials:'same-origin'});const out=await res.json();if(!res.ok)throw Error(out.error||'Upload failed');target.value=out.url;flash('Image uploaded successfully');}catch(e){flash(e.message,true)}finally{input.disabled=false;}}
+async function prepareProductImage(file){
+ if(!file.type.match(/^image\/(jpeg|png|webp)$/))throw Error('Choose JPG, PNG or WebP image.');
+ const bitmap=await createImageBitmap(file);
+ try{
+  const maxSide=1600;
+  const ratio=Math.min(1,maxSide/Math.max(bitmap.width,bitmap.height));
+  const w=Math.max(1,Math.round(bitmap.width*ratio)),h=Math.max(1,Math.round(bitmap.height*ratio));
+  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+  const ctx=canvas.getContext('2d');if(!ctx)throw Error('Image processing unavailable.');
+  // Use JPEG for product photos. White backing avoids black transparent areas.
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);
+  ctx.drawImage(bitmap,0,0,w,h);
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.82));
+  if(!blob)throw Error('Could not compress this image.');
+  if(blob.size>5*1024*1024)throw Error('Compressed photo exceeds 5 MB. Choose a smaller picture.');
+  return new File([blob],(file.name.replace(/\.[^.]*$/,'')||'product')+'.jpg',{type:'image/jpeg'});
+ }finally{bitmap.close();}
+}
+async function uploadImage(input,target){
+ if(!input.files||!input.files[0])return;
+ const file=input.files[0],isProduct=input.id==='productImageFile';
+ input.disabled=true;
+ const form=input.closest('form'),save=form?.querySelector('[type="submit"]');
+ if(save)save.disabled=true;
+ try{
+  // Preserve original shop logos; automatically resize/compress product photos.
+  const upload=isProduct?await prepareProductImage(file):file;
+  const fd=new FormData();fd.append('image',upload);
+  const res=await fetch('/api/upload.php',{method:'POST',headers:{'X-CSRF-Token':csrf},body:fd,credentials:'same-origin'});
+  const out=await res.json();
+  if(!res.ok)throw Error(out.error||'Upload failed');
+  target.value=out.url;
+  flash(isProduct?'Product image optimized and uploaded successfully':'Image uploaded successfully');
+ }catch(e){flash(e.message||'Image upload failed',true)}
+ finally{input.disabled=false;if(save)save.disabled=false;}
+}
 function wireForms(){
  let uploader=$('shopLogoFile');if(uploader)uploader.onchange=()=>uploadImage(uploader,$('shopLogo'));
  uploader=$('productImageFile');if(uploader)uploader.onchange=()=>uploadImage(uploader,$('productImage'));
