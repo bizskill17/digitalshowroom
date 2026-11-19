@@ -50,7 +50,7 @@ before production deployment. Confirm both the new URL and the existing
 - Excel-compatible CSV bulk product import under Seller → Products → Import Products: download the template, enter up to 100 products and preview before saving. Save as **CSV UTF-8** from Excel. CSV can include product name, an existing category, price or 'On Request', unit, description, display order, visibility. The import is all-or-nothing, checks quota and duplicate names, and never overwrites existing products. Photos are added later via Edit Product.
 - Mobile quick product entry shows photo, name and price first; optional fields appear under More Product Details. Seller → Products → From Gallery lets users select multiple photos and turn each photo into a separate product after reviewing name/category/price. Product allowance and duplicate-name checks apply; creation is transactional. Uploaded media files are retained even if a batch is rejected.
 - Dynamic public showroom, quantity selection, WhatsApp order/quotation message
-- Basic canvas-based product status image generation
+- WhatsApp Status Image Maker: select multiple visible products, choose Classic / Modern / Minimal branded designs, preview each status and download individual 1080 × 1920 PNGs. Images use shop name, colour, logo, WhatsApp contact and product photo when available; generation happens locally in the browser.
 - Administrator dashboard: sellers/shops, enable/disable shops and global free product allowance
 - PHP creates the initial `ds_*` tables automatically on first API access (database user needs CREATE TABLE permission)
 
