@@ -177,3 +177,19 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
  .sidebar{overflow-x:auto;overflow-y:visible}
  .sidebar .side-link{padding-top:10px;padding-bottom:10px}
 }
+
+/* Compact CSV import screen, without changing CSV parsing or validation. */
+.product-import-panel{padding:16px 20px 18px}
+.product-import-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.product-import-heading h2{font-size:19px;margin:0}
+.product-import-field{margin-bottom:12px}
+.product-import-picker{display:flex;align-items:center;gap:10px;position:relative;min-height:43px;width:100%;padding:6px 10px;border:1px solid #bfcee2;border-radius:9px;background:#fff;overflow:hidden}
+.product-import-picker input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:1}
+.product-import-picker:focus-within{outline:2px solid #99c4ff;outline-offset:1px}
+.product-import-picker-label{font-size:13px;line-height:1.2;white-space:nowrap;padding:6px 10px;border-radius:5px;border:1px solid #a6b6c9;background:#eef3fa;color:#163656}
+.product-import-filename{font-size:13px;color:#405774;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.product-import-actions{margin-top:12px}
+.product-import-notice{margin:8px 0;color:#365d8d;font-size:13px}
+.product-import-notice[hidden]{display:none}
+.product-import-notice.error{padding:9px 12px;border-radius:8px;background:#fff0f1;color:#a62435}
+@media(max-width:640px){.product-import-panel{padding:14px}.product-import-heading{align-items:center;flex-wrap:wrap}.product-import-actions .btn{min-height:39px}}
