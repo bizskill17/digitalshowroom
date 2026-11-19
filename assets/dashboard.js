@@ -21,7 +21,7 @@ function wrapTable(head,rows){return '<div class="table-wrap"><table class="data
 function shopUrl(){return location.origin+'/'+encodeURIComponent(data.shop.slug)}
 function field(label,id,value='',type='text',extra=''){return '<div class="field"><label for="'+id+'">'+esc(label)+'</label><input id="'+id+'" type="'+type+'" value="'+esc(value)+'" '+extra+'></div>'}
 let enquiryRecords=[],enquiryLoaded=false,enquiryLoading=false,enquiryError='';
-const enquiryFilters={search:'',from:'',to:'',type:'',status:''};
+const enquiryFilters={search:'',from:'',to:'',type:''};
 function formatEnquiryDate(value){
  const match=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/);
  return match?match[3]+'/'+match[2]+'/'+match[1]+(match[4]?' '+match[4]:''):String(value||'');
@@ -32,7 +32,6 @@ function enquiryMatches(e){
  if(filter.from&&date<filter.from)return false;
  if(filter.to&&date>filter.to)return false;
  if(filter.type&&e.kind!==filter.type)return false;
- if(filter.status&&e.status!==filter.status)return false;
  const q=filter.search.trim().toLocaleLowerCase();
  if(!q)return true;
  const searchable=[
@@ -46,7 +45,7 @@ function enquiryTableRows(){
  $('enquiryResultCount').textContent=filtered.length+' of '+enquiryRecords.length+' enquiries';
  const tbody=$('enquiryTableBody');
  if(!tbody)return;
- if(!filtered.length){tbody.innerHTML='<tr><td colspan="7" class="placeholder">No matching enquiries.</td></tr>';return;}
+ if(!filtered.length){tbody.innerHTML='<tr><td colspan="6" class="placeholder">No matching enquiries.</td></tr>';return;}
  tbody.innerHTML=filtered.map(e=>{
   const ref='ENQ-'+String(e.id).padStart(5,'0');
   const customer=String(e.customer_name||'').trim(),mobile=String(e.customer_mobile||'').replace(/[^0-9]/g,'');
@@ -55,12 +54,10 @@ function enquiryTableRows(){
    (mobile?'<a href="https://wa.me/'+encodeURIComponent(wa)+'" target="_blank" rel="noopener noreferrer">'+esc(mobile)+'</a>':'<span>Contact not provided</span>')+'</div>';
   const n=(e.items||[]).length;
   const details='<button type="button" class="enquiry-detail-link" data-enquiry-view="'+Number(e.id)+'">View '+n+' item'+(n===1?'':'s')+'</button>';
-  const options=['New','Follow-up','Completed'].map(v=>'<option value="'+esc(v)+'" '+(e.status===v?'selected':'')+'>'+esc(v)+'</option>').join('');
   const total=e.estimated_total===null?'On request':'₹'+Number(e.estimated_total).toFixed(2);
-  return '<tr><td class="enquiry-ref">'+ref+'</td><td class="enquiry-date">'+esc(formatEnquiryDate(e.created_at))+'</td><td>'+(e.kind==='quotation'?'Quotation':'Order')+'</td><td>'+details+'</td><td class="enquiry-amount">'+total+'</td><td>'+contact+'</td><td><select class="enquiry-status" data-enquiry-status="'+Number(e.id)+'" aria-label="Status of '+ref+'">'+options+'</select></td></tr>';
+  return '<tr><td class="enquiry-ref">'+ref+'</td><td class="enquiry-date">'+esc(formatEnquiryDate(e.created_at))+'</td><td>'+(e.kind==='quotation'?'Quotation':'Order')+'</td><td>'+details+'</td><td class="enquiry-amount">'+total+'</td><td>'+contact+'</td></tr>';
  }).join('');
  tbody.querySelectorAll('[data-enquiry-view]').forEach(button=>button.onclick=()=>showEnquiryDetails(Number(button.dataset.enquiryView)));
- tbody.querySelectorAll('[data-enquiry-status]').forEach(select=>select.onchange=()=>updateEnquiryStatus(select));
 }
 function showEnquiryDetails(id){
  const e=enquiryRecords.find(item=>Number(item.id)===id);
@@ -91,15 +88,15 @@ function enquiryPanel(){
   '<div class="field"><label for="enquiryFrom">From Date</label><input id="enquiryFrom" type="date" value="'+esc(enquiryFilters.from)+'"></div>'+
   '<div class="field"><label for="enquiryTo">To Date</label><input id="enquiryTo" type="date" value="'+esc(enquiryFilters.to)+'"></div>'+
   '<div class="field"><label for="enquiryType">Type</label><select id="enquiryType"><option value="">All Types</option><option value="order" '+(enquiryFilters.type==='order'?'selected':'')+'>Order</option><option value="quotation" '+(enquiryFilters.type==='quotation'?'selected':'')+'>Quotation</option></select></div>'+
-  '<div class="field"><label for="enquiryStatusFilter">Status</label><select id="enquiryStatusFilter"><option value="">All Statuses</option>'+['New','Follow-up','Completed'].map(v=>'<option value="'+v+'" '+(enquiryFilters.status===v?'selected':'')+'>'+v+'</option>').join('')+'</select></div>'+
+
   '<button type="button" class="btn soft enquiry-clear" id="enquiryClearFilters">Clear</button>'+
  '</div>';
- const table='<div class="enquiry-table-summary"><span id="enquiryResultCount"></span></div><div class="table-wrap"><table class="data-table enquiry-table"><thead><tr><th>Reference</th><th>Date</th><th>Type</th><th>Products</th><th>Amount</th><th>Customer</th><th>Status</th></tr></thead><tbody id="enquiryTableBody"></tbody></table></div>';
+ const table='<div class="table-wrap"><table class="data-table enquiry-table"><thead><tr><th>Reference</th><th>Date</th><th>Type</th><th>Products</th><th>Amount</th><th>Customer</th></tr></thead><tbody id="enquiryTableBody"></tbody></table></div><div class="enquiry-table-summary"><span id="enquiryResultCount"></span></div>';
  const dialog='<dialog class="enquiry-details-dialog" id="enquiryDetailsDialog" aria-labelledby="enquiryDetailsTitle"><div class="enquiry-details-head"><h3 id="enquiryDetailsTitle"></h3><button type="button" class="enquiry-close" id="enquiryDetailsClose" aria-label="Close">×</button></div><p id="enquiryDetailsMeta" class="muted"></p><div class="table-wrap"><table class="data-table"><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody id="enquiryDetailsItems"></tbody></table></div><div class="enquiry-details-bottom"><strong id="enquiryDetailsTotal"></strong><button type="button" class="btn soft" id="enquiryDetailsDone">Close</button></div></dialog>';
  return '<section class="panel enquiry-inbox-panel">'+controls+table+dialog+'</section>';
 }
 function wireEnquiryFilters(){
- const pairs=[['enquirySearch','search'],['enquiryFrom','from'],['enquiryTo','to'],['enquiryType','type'],['enquiryStatusFilter','status']];
+ const pairs=[['enquirySearch','search'],['enquiryFrom','from'],['enquiryTo','to'],['enquiryType','type']];
  for(const [id,key] of pairs){
   const el=$(id);if(!el)continue;
   el.addEventListener(key==='search'?'input':'change',()=>{
@@ -501,7 +498,6 @@ async function uploadProductPhotos(input){
 }
 function wireForms(){
  if(view==='enquiries')wireEnquiryFilters();
- document.querySelectorAll('[data-enquiry-status]').forEach(select=>select.onchange=()=>updateEnquiryStatus(select));
 
  const galleryFiles=$('galleryBulkFile');
  if(galleryFiles)galleryFiles.onchange=()=>{addGalleryDrafts(Array.from(galleryFiles.files||[]));galleryFiles.value='';};
