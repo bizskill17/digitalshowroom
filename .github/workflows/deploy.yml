@@ -75,7 +75,7 @@ jobs:
               raise SystemExit('ADMIN_SETUP_TOKEN must be at least 32 characters')
           token_hash = hashlib.sha256(setup_token.encode('utf-8')).hexdigest() if setup_token else ''
           setup_file = Path('/tmp/showroom-admin-setup-config.php')
-          setup_file.write_text("<?php\\nreturn '" + token_hash + "';\\n", encoding='utf-8')
+          setup_file.write_text("<?php\nreturn '" + token_hash + "';\n", encoding='utf-8')
           setup_file.chmod(0o600)
           PY
 
