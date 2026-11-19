@@ -145,8 +145,7 @@ function analyticsToday(){
  return now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
 }
 function analyticsDates(){
- const today=analyticsToday();
- return {from:analyticsFromDate||today,to:analyticsToDate||today};
+ return {from:analyticsFromDate,to:analyticsToDate};
 }
 function analyticsPanel(){
  const dates=analyticsDates();
@@ -173,17 +172,25 @@ function analyticsPanel(){
 }
 async function fetchAnalytics(){
  const dates=analyticsDates();
- if(!/^\d{4}-\d{2}-\d{2}$/.test(dates.from)||!/^\d{4}-\d{2}-\d{2}$/.test(dates.to)){
-  analyticsError='Choose both dates.';analyticsResult=null;render();return;
+ for(const date of [dates.from,dates.to]){
+  if(date&&!/^\d{4}-\d{2}-\d{2}$/.test(date)){
+   analyticsError='Enter a valid date.';analyticsResult=null;render();return;
+  }
  }
- if(dates.from>dates.to){analyticsError='From Date must not be after To Date.';analyticsResult=null;render();return;}
+ if(dates.from&&dates.to&&dates.from>dates.to){
+  analyticsError='From Date must not be after To Date.';analyticsResult=null;render();return;
+ }
+ const requestId=++analyticsRequestId;
  analyticsLoading=true;analyticsError='';render();
  try{
-  const r=await fetch('/api/app.php?action=analytics&from='+encodeURIComponent(dates.from)+'&to='+encodeURIComponent(dates.to),{credentials:'same-origin'});
+  const query=new URLSearchParams({action:'analytics'});
+  if(dates.from)query.set('from',dates.from);
+  if(dates.to)query.set('to',dates.to);
+  const r=await fetch('/api/app.php?'+query.toString(),{credentials:'same-origin'});
   const result=await r.json();if(!r.ok)throw Error(result.error||'Analytics unavailable');
-  analyticsResult=result;
- }catch(e){analyticsError=e.message;analyticsResult=null;}
- finally{analyticsLoading=false;if(view==='analytics')render();}
+  if(requestId===analyticsRequestId)analyticsResult=result;
+ }catch(e){if(requestId===analyticsRequestId){analyticsError=e.message;analyticsResult=null;}}
+ finally{if(requestId===analyticsRequestId){analyticsLoading=false;if(view==='analytics')render();}}
 }
 function wireAnalytics(){
  const updateDates=()=>{
