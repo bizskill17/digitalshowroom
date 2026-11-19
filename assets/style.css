@@ -112,3 +112,19 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
 .enquiry-status{min-width:112px;padding:7px 8px;border:1px solid #bdd1e9;border-radius:8px;background:#fff;color:#0c2b52}
 .data-table details summary{cursor:pointer;color:#075dcc;font-weight:600}
 @media(max-width:800px){.data-table .enquiry-status{min-width:95px}.enquiry-items{min-width:180px}}
+
+/* Public showroom: customer contact confirmation before WhatsApp enquiry */
+.enquiry-dialog{width:min(440px,calc(100vw - 28px));max-height:calc(100dvh - 24px);overflow-y:auto;border:1px solid #dde7f2;border-radius:18px;padding:24px;background:white;color:#0c2245;box-shadow:0 24px 70px #04142b55}
+.enquiry-dialog::backdrop{background:#061a37aa}
+.enquiry-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+.enquiry-dialog-head h2{margin:0;font-size:23px}
+.enquiry-close{display:grid;place-items:center;width:32px;height:32px;background:#f2f6fc;border:0;border-radius:8px;color:#203b60;font-size:24px}
+.enquiry-dialog .field{margin-bottom:16px}
+.enquiry-dialog .field label{display:block;margin-bottom:7px;font-weight:650}
+.enquiry-dialog .field input{width:100%;min-height:44px;border:1px solid #b9cdea;border-radius:9px;padding:9px 12px;background:white;color:#0c2245}
+.enquiry-dialog .field input:focus{outline:2px solid #74a9ee;outline-offset:1px}
+.enquiry-dialog-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:22px}
+.enquiry-error{margin:8px 0;padding:10px;border-radius:8px;background:#fff0f1;color:#aa2431}
+.enquiry-customer{display:flex;flex-direction:column;gap:3px}
+.enquiry-customer a{color:#0862df;text-decoration:underline}
+@media(max-width:520px){.enquiry-dialog{padding:18px}.enquiry-dialog-actions{flex-direction:column-reverse}.enquiry-dialog-actions button{width:100%}}
