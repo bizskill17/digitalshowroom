@@ -22,6 +22,15 @@ already contains custom `.htaccess` directives, merge and retain those directive
 before production deployment. Confirm both the new URL and the existing
 `/shop.html?slug=bca-momo-wala` URL work.
 
+## Phase 2 — Enquiry Inbox (initial implementation)
+
+- Each public **Send Order on WhatsApp** or **Get Quotation** click first saves an enquiry in MySQL, then opens the prepared WhatsApp message with the enquiry reference.
+- Each enquiry records its shop, type, product snapshots, quantities, units, price or On Request, estimated total and creation time. Statuses: New, Follow-up, Completed.
+- Seller → Enquiry Inbox shows the most recent 200 enquiries for **that seller's shop only**, with expandable product details and editable status.
+- **WhatsApp has no delivery confirmation**: records indicate that the buyer initiated the WhatsApp flow, not that they sent a message. Customer identity is not known automatically and is shown as not provided.
+- Public posting requires a session CSRF token; selected products and prices are re-validated against active products for the requested shop. There is a lightweight per-session click limit. Production-grade IP/risk throttling and optional buyer-contact capture remain future improvements.
+- Enquiry tables `ds_enquiries` and `ds_enquiry_items` are included in the backup script. Existing products and shops are not modified by this feature.
+
 ## Functional features
 - Seller registration and login with hashed passwords, session authentication and CSRF checks
 - One shop per registered seller; public link using a unique slug
