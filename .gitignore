@@ -1,0 +1,14 @@
+# Never commit server-side credentials, credentials generated during deployment,
+# uploaded shop photos, or private backup archives.
+showroom-private/
+**/db-config.php
+**/admin-setup-config.php
+uploads/*
+!uploads/.htaccess
+*.sql
+*.sql.gz
+*.bak
+*.backup
+.env
+.env.*
+!.env.example
