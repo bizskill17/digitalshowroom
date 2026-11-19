@@ -100,6 +100,23 @@ try{
   respond(['ok'=>true,'name'=>$name]);
  }
  if($u['role']==='admin'){
+  if($action==='change-password'){
+   $current=(string)($d['current_password']??'');
+   $new=(string)($d['new_password']??'');
+   $confirm=(string)($d['confirm_password']??'');
+   if(strlen($new)<4||strlen($new)>200)respond(['error'=>'New password must contain at least 4 characters (maximum 200).'],422);
+   if($new!==$confirm)respond(['error'=>'New Password and Confirm New Password do not match.'],422);
+   if($new===$current)respond(['error'=>'Choose a password different from your current password.'],422);
+   $q=$db->prepare('SELECT pass_hash FROM ds_users WHERE id=? AND role=?');
+   $q->execute([(int)$u['id'],'admin']);
+   $hash=$q->fetchColumn();
+   if(!$hash||!password_verify($current,$hash))respond(['error'=>'Current password is incorrect.'],403);
+   $q=$db->prepare('UPDATE ds_users SET pass_hash=? WHERE id=? AND role=? AND pass_hash=?');
+   $q->execute([password_hash($new,PASSWORD_DEFAULT),(int)$u['id'],'admin',$hash]);
+   if($q->rowCount()!==1)respond(['error'=>'Password could not be updated. Please try again.'],409);
+   session_regenerate_id(true);
+   respond(['ok'=>true,'message'=>'Password updated successfully.']);
+  }
   if($action==='settings'){
    $n=filter_var($d['free_product_limit']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>100000]]);
    if($n===false)respond(['error'=>'Enter a valid product limit'],422);
