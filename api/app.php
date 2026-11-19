@@ -77,10 +77,17 @@ try{
   }catch(PDOException $e){$db->rollBack();if($e->getCode()==='23000')respond(['error'=>'Email or shop link is already in use'],409);throw $e;}
   session_regenerate_id(true);$_SESSION['user_id']=$uid;respond(['ok'=>true,'role'=>'seller']);
  }
- if($action==='login'){
-  $d=body();$q=$db->prepare('SELECT id,pass_hash FROM ds_users WHERE email=?');$q->execute([strtolower(clean($d['email']??'',190))]);$row=$q->fetch();
+ if($action==='login'||$action==='admin-login'){
+  $d=body();
+  $q=$db->prepare('SELECT id,pass_hash,role FROM ds_users WHERE email=?');
+  $q->execute([strtolower(clean($d['email']??'',190))]);
+  $row=$q->fetch();
   if(!$row||!password_verify((string)($d['password']??''),$row['pass_hash']))respond(['error'=>'Invalid email or password'],401);
-  session_regenerate_id(true);$_SESSION['user_id']=(int)$row['id'];respond(['ok'=>true]);
+  if($action==='admin-login'&&$row['role']!=='admin')respond(['error'=>'This account does not have administrator access'],403);
+  if($action==='login'&&$row['role']==='admin')respond(['error'=>'Please use the Admin Login page'],403);
+  session_regenerate_id(true);
+  $_SESSION['user_id']=(int)$row['id'];
+  respond(['ok'=>true,'role'=>$row['role']]);
  }
  if($action==='logout'){$_SESSION=[];session_regenerate_id(true);respond(['ok'=>true]);}
  $u=currentUser($db);if(!$u)respond(['error'=>'Please sign in'],401);
