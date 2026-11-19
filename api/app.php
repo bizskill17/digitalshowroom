@@ -278,6 +278,53 @@ try{
    respond(['ok'=>true,'created'=>count($validated)]);
   }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
  }
+ if($action==='gallery-product-import'){
+  $rows=$d['rows']??null;
+  if(!is_array($rows)||count($rows)<1||count($rows)>30)respond(['error'=>'Select 1 to 30 photos for new products'],422);
+  $validated=[];$seen=[];
+  foreach($rows as $index=>$row){
+   $line=$index+1;
+   if(!is_array($row))respond(['error'=>'Invalid gallery product '.$line],422);
+   $rawName=trim((string)($row['name']??''));
+   if($rawName===''||mb_strlen($rawName)>180)respond(['error'=>'Enter a valid name for product '.$line],422);
+   $name=clean($rawName,180);$key=mb_strtolower($name);
+   if(isset($seen[$key]))respond(['error'=>'Duplicate name in selected photos: '.$name],422);
+   $seen[$key]=true;
+   $url=trim((string)($row['image_url']??''));
+   if(!preg_match('~^/uploads/'.preg_quote((string)$sid,'~').'/[a-f0-9]{32}\\.(?:jpg|png|webp)$~',$url))
+    respond(['error'=>'Invalid photo for product '.$line],422);
+   $price=trim((string)($row['price']??''));
+   if($price===''||mb_strtolower($price)==='on request')$price=null;
+   elseif(!preg_match('/^(?:0|[1-9][0-9]{0,9})(?:\\.[0-9]{1,2})?$/',$price)||(float)$price>9999999999)
+    respond(['error'=>'Invalid price for product '.$line],422);
+   else $price=number_format((float)$price,2,'.','');
+   $cat=(int)($row['category_id']??0);
+   if($cat&&!belongs($db,'ds_categories',$cat,$sid))respond(['error'=>'Invalid category for product '.$line],422);
+   $unit=trim((string)($row['unit']??'Piece'));
+   if($unit===''||mb_strlen($unit)>30)respond(['error'=>'Invalid unit for product '.$line],422);
+   $validated[]=[$sid,$cat?:null,$name,'',$price,$url,1,$unit,0];
+  }
+  $db->beginTransaction();
+  try{
+   $db->query("SELECT setting_value FROM ds_settings WHERE setting_key='free_product_limit' FOR UPDATE")->fetchColumn();
+   $c=$db->prepare('SELECT COUNT(*) FROM ds_products WHERE shop_id=?');$c->execute([$sid]);
+   if((int)$c->fetchColumn()+count($validated)>quota($db)){
+    $db->rollBack();respond(['error'=>'Product limit exceeded. No products have been created.'],403);
+   }
+   $q=$db->prepare('SELECT name FROM ds_products WHERE shop_id=?');$q->execute([$sid]);
+   foreach($q->fetchAll(PDO::FETCH_COLUMN) as $existingName){
+    if(isset($seen[mb_strtolower(trim((string)$existingName))])){
+     $db->rollBack();respond(['error'=>'A product name already exists: '.$existingName.'. No products have been created.'],409);
+    }
+   }
+   $insert=$db->prepare('INSERT INTO ds_products(shop_id,category_id,name,description,price,image_url,active,unit,display_order) VALUES(?,?,?,?,?,?,?,?,?)');
+   $gallery=$db->prepare('INSERT INTO ds_product_images(shop_id,product_id,image_url,display_order) VALUES(?,?,?,0)');
+   foreach($validated as $values){
+    $insert->execute($values);$gallery->execute([$sid,(int)$db->lastInsertId(),$values[5]]);
+   }
+   $db->commit();respond(['ok'=>true,'created'=>count($validated)]);
+  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+ }
  if($action==='product-save'){
   $id=(int)($d['id']??0);$name=clean($d['name']??'',180);$desc=clean($d['description']??'',2500);$img=clean($d['image_url']??'',500);$cat=(int)($d['category_id']??0);$price=$d['price']??null;$active=!empty($d['active'])?1:0;
   $unit=clean($d['unit']??'Piece',30);
