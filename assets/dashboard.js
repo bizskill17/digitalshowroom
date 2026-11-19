@@ -49,7 +49,7 @@ function catalogueForm(id){
  return panel(id?'Edit Catalogue':'Add Catalogue','<form id="catalogueForm" data-id="'+(id||'')+'">'+field('Catalogue Name *','catalogueName',c.name,'text','required maxlength="130"')+'<div class="field"><label>Select Products</label><div class="panel" style="max-height:320px;overflow:auto">'+(data.products.map(p=>'<label style="display:block;margin-bottom:10px"><input type="checkbox" name="catalogueProduct" value="'+p.id+'" '+(chosen.includes(+p.id)?'checked':'')+'> '+esc(p.name)+'</label>').join('')||'Add products first')+'</div></div><button class="btn primary" type="submit">Save Catalogue</button> '+button('Cancel','cancel')+'</form>');
 }
 function statusPanel(){
- return panel('WhatsApp Status Image Maker','<p class="muted">Select products and generate downloadable images for WhatsApp Status.</p><div class="form-grid">'+data.products.filter(p=>+p.active).map(p=>'<label class="feature"><input type="checkbox" class="statusPick" value="'+p.id+'"> '+esc(p.name)+'</label>').join('')+'</div><p style="margin-top:18px">'+button('Generate Selected Images','generate-status','primary')+'</p><div id="statusOutput"></div>');
+ return panel('WhatsApp Status Image Maker','<div class="form-grid">'+data.products.filter(p=>+p.active).map(p=>'<label class="feature"><input type="checkbox" class="statusPick" value="'+p.id+'"> '+esc(p.name)+'</label>').join('')+'</div><p style="margin-top:18px">'+button('Generate Selected Images','generate-status','primary')+'</p><div id="statusOutput"></div>');
 }
 function adminDashboard(){
  const s=data.stats;return '<div class="stats">'+stat('Registered Sellers',s.sellers,'blue')+stat('Shops',s.shops,'green')+stat('Products',s.products,'amber')+stat('Free Product Limit',s.free_product_limit,'purple','Products per shop')+'</div><div class="columns"><div>'+adminShops()+'</div><div>'+panel('Platform Settings','<p>Free Product Limit: <b>'+s.free_product_limit+'</b></p>'+button('Change Limit','nav-settings','primary'))+panel('Subscriptions','<p class="muted">Paid subscriptions and Razorpay are planned for the next development phase.</p>')+'</div></div>';
@@ -75,7 +75,7 @@ function render(){
   if(view==='categories'){name='Product Categories';html=categoryPanel();}
   if(view==='catalogues'){name='Catalogues';html=cataloguesPanel();}
   if(view==='status'){name='WhatsApp Status';html=statusPanel();}
-  if(view==='public'){name='Public Showroom';html=panel('Share Your Shop','<p>Send this link to your customers:</p><div class="preview-link">'+esc(shopUrl())+'</div><p>'+button('Copy Link','copyLink')+' <a class="btn sm primary" href="'+esc(shopUrl())+'" target="_blank">Open Showroom ↗</a></p>');}
+  if(view==='public'){name='Public Showroom';html=panel('Share Your Shop','<div class="preview-link">'+esc(shopUrl())+'</div><p>'+button('Copy Link','copyLink')+' <a class="btn sm primary" href="'+esc(shopUrl())+'" target="_blank">Open Showroom ↗</a></p>');}
   if(view==='subscription'){name='Subscription';html=panel('Your Plan','<div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+stat('Current Plan','Free','green')+stat('Products Used',data.products.length+' / '+data.free_product_limit,'blue')+'</div><p>Paid subscription plans and Razorpay integration are planned and are not yet enabled.</p>');}
  }
  title(name);$('content').innerHTML=html;wireForms();
