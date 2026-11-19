@@ -16,7 +16,7 @@ function shopUrl(){return location.origin+'/shop.html?slug='+encodeURIComponent(
 function field(label,id,value='',type='text',extra=''){return '<div class="field"><label for="'+id+'">'+esc(label)+'</label><input id="'+id+'" type="'+type+'" value="'+esc(value)+'" '+extra+'></div>'}
 function sellerDashboard(){
  const n=data.products.length,limit=data.free_product_limit;
- return '<div class="welcome"><div><h2>'+esc(data.shop.name)+'</h2><p>Manage your products, create catalogues and share your shop with customers.</p></div><a class="btn primary" target="_blank" rel="noopener" href="'+esc(shopUrl())+'">Public Showroom ↗</a></div>'
+ return ''
  +'<div class="stats">'+stat('Products',n+' / '+limit,'blue','Free product allowance')+stat('Categories',data.categories.length,'green')+stat('Catalogues',data.catalogues.length,'amber')+stat('Subscription','Free','purple','Paid plans coming later')+'</div>'
  +'<div class="columns"><div>'+productsPanel(true)+'</div><div>'+panel('Public Showroom','<div class="preview-link">'+esc(shopUrl())+'</div><p>'+button('Copy Link','copyLink')+' <a class="btn primary sm" target="_blank" href="'+esc(shopUrl())+'">Open Shop ↗</a></p>')
  +'</div></div>';
