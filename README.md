@@ -51,6 +51,14 @@ The existing Admin → Subscription Plans page now manages subscription plan def
 - The `ds_subscription_plans` table is included in the private CLI database backup.
 - Existing Seller accounts and products are not modified or deleted.
 
+## Phase 3 — Additional plan options and Delete Plan
+
+Admin Subscription Plans now includes **Enquiry Inbox**, **Excel Product Import**, **Gallery Bulk Upload**, and a configurable **Photos per Product** limit (1–6). The existing Analytics, WhatsApp Status, Catalogue PDF, and Remove Showroom Branding switches remain. Free starts at 2 photos and Pro at 6 on the new database-column migration; existing images and product uploads are not changed.
+
+These are **stored plan definitions only**. Subscription assignment, feature gating, paid upgrades, and all individual per-plan restrictions must be implemented and tested before launch; the current seller modules are not restricted by these new toggles.
+
+Custom plans can be deleted in Admin after they are deactivated and only if no known subscription/payment assignment tables reference them. Free and Pro cannot be deleted. Deletion is transactional and requires an on-screen confirmation; it does not delete sellers, shops, products, or uploads.
+
 ## Phase 3 — Seller Subscription Page (read-only)
 
 Seller → Subscription now displays the current Free plan, actual product and catalogue counts, product-limit progress, and a comparison of Free and configured/active plans. Values are fetched from the Admin Plan Master through a seller-authenticated read-only endpoint. The seeded Pro plan is shown as Coming Soon; an inactive plan cannot be purchased. Zero-priced draft paid plans display "Price to be announced" rather than suggesting they are free.
