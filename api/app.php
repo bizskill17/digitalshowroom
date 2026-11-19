@@ -30,6 +30,21 @@ function setup(PDO $db):void{
  $db->exec("CREATE TABLE IF NOT EXISTS ds_catalogue_products (catalogue_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NOT NULL,PRIMARY KEY(catalogue_id,product_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("CREATE TABLE IF NOT EXISTS ds_settings (setting_key VARCHAR(80) PRIMARY KEY,setting_value VARCHAR(255) NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("INSERT IGNORE INTO ds_settings(setting_key,setting_value) VALUES ('free_product_limit','5')");
+ // Non-destructive, idempotent additions to existing product records.
+ foreach ([
+  'unit' => "ALTER TABLE ds_products ADD COLUMN unit VARCHAR(30) NOT NULL DEFAULT 'Piece'",
+  'display_order' => "ALTER TABLE ds_products ADD COLUMN display_order INT UNSIGNED NOT NULL DEFAULT 0"
+ ] as $column => $sql) {
+  $q=$db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ds_products' AND COLUMN_NAME=?");
+  $q->execute([$column]);
+  if (!(int)$q->fetchColumn()) {
+   try {$db->exec($sql);}
+   catch (PDOException $e) {
+    // Two concurrent requests may both detect the missing column.
+    if (($e->errorInfo[1]??null)!==1060) throw $e;
+   }
+  }
+ }
 }
 function quota(PDO $db):int{return max(0,(int)$db->query("SELECT setting_value FROM ds_settings WHERE setting_key='free_product_limit'")->fetchColumn());}
 function belongs(PDO $db,string $table,int $id,int $shop):bool{
@@ -45,7 +60,7 @@ try{
   if($action==='public'){
    $slug=clean($_GET['slug']??'',90);$q=$db->prepare('SELECT id,slug,name,tagline,phone,address,logo_url FROM ds_shops WHERE slug=? AND active=1');$q->execute([$slug]);$shop=$q->fetch();if(!$shop)respond(['error'=>'Shop not found'],404);
    $q=$db->prepare('SELECT id,name,image_url FROM ds_categories WHERE shop_id=? ORDER BY id DESC');$q->execute([$shop['id']]);$cats=$q->fetchAll();
-   $q=$db->prepare('SELECT id,category_id,name,description,price,image_url FROM ds_products WHERE shop_id=? AND active=1 ORDER BY id DESC');$q->execute([$shop['id']]);
+   $q=$db->prepare('SELECT id,category_id,name,description,price,image_url,unit,display_order FROM ds_products WHERE shop_id=? AND active=1 ORDER BY display_order ASC,id DESC');$q->execute([$shop['id']]);
    respond(['shop'=>$shop,'categories'=>$cats,'products'=>$q->fetchAll()]);
   }
   $u=currentUser($db);if(!$u)respond(['error'=>'Please sign in'],401);
@@ -57,7 +72,7 @@ try{
    }
    $shop=shopFor($db,(int)$u['id']);
    $q=$db->prepare('SELECT * FROM ds_categories WHERE shop_id=? ORDER BY id DESC');$q->execute([$shop['id']]);$categories=$q->fetchAll();
-   $q=$db->prepare('SELECT * FROM ds_products WHERE shop_id=? ORDER BY id DESC');$q->execute([$shop['id']]);$products=$q->fetchAll();
+   $q=$db->prepare('SELECT * FROM ds_products WHERE shop_id=? ORDER BY display_order ASC,id DESC');$q->execute([$shop['id']]);$products=$q->fetchAll();
    $q=$db->prepare('SELECT * FROM ds_catalogues WHERE shop_id=? ORDER BY id DESC');$q->execute([$shop['id']]);$catalogues=$q->fetchAll();
    $q=$db->prepare('SELECT cp.catalogue_id,cp.product_id FROM ds_catalogue_products cp JOIN ds_catalogues c ON c.id=cp.catalogue_id WHERE c.shop_id=?');$q->execute([$shop['id']]);
    respond(['role'=>'seller','shop'=>$shop,'categories'=>$categories,'products'=>$products,'catalogues'=>$catalogues,'catalogue_products'=>$q->fetchAll(),'free_product_limit'=>quota($db)]);
@@ -170,18 +185,21 @@ try{
  }
  if($action==='product-save'){
   $id=(int)($d['id']??0);$name=clean($d['name']??'',180);$desc=clean($d['description']??'',2500);$img=clean($d['image_url']??'',500);$cat=(int)($d['category_id']??0);$price=$d['price']??null;$active=!empty($d['active'])?1:0;
+  $unit=clean($d['unit']??'Piece',30);
+  $order=filter_var($d['display_order']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>999999]]);
+  if($unit===''||$order===false)respond(['error'=>'Enter a valid product unit and display order'],422);
   if(!$name||($img&&!preg_match('~^https?://~i',$img)&&!str_starts_with($img,'/uploads/')))respond(['error'=>'Valid product name and image required'],422);
   if($cat&&!belongs($db,'ds_categories',$cat,$sid))respond(['error'=>'Invalid category'],422);
   if($price===''||$price===null)$price=null;elseif(!is_numeric($price)||(float)$price<0||(float)$price>9999999999)respond(['error'=>'Invalid price'],422);else $price=number_format((float)$price,2,'.','');
   if($id){if(!belongs($db,'ds_products',$id,$sid))respond(['error'=>'Product not found'],404);
-   $q=$db->prepare('UPDATE ds_products SET name=?,description=?,category_id=?,price=?,image_url=?,active=? WHERE id=?');$q->execute([$name,$desc,$cat?:null,$price,$img,$active,$id]);
+   $q=$db->prepare('UPDATE ds_products SET name=?,description=?,category_id=?,price=?,image_url=?,active=?,unit=?,display_order=? WHERE id=?');$q->execute([$name,$desc,$cat?:null,$price,$img,$active,$unit,$order,$id]);
   }else{
    $db->beginTransaction();
    try{
     $db->query('SELECT setting_value FROM ds_settings WHERE setting_key="free_product_limit" FOR UPDATE')->fetchColumn();
     $q=$db->prepare('SELECT COUNT(*) FROM ds_products WHERE shop_id=?');$q->execute([$sid]);
     if((int)$q->fetchColumn()>=quota($db)){$db->rollBack();respond(['error'=>'Free product allowance reached. Contact the administrator for more capacity.'],403);}
-    $q=$db->prepare('INSERT INTO ds_products(shop_id,category_id,name,description,price,image_url,active) VALUES(?,?,?,?,?,?,?)');$q->execute([$sid,$cat?:null,$name,$desc,$price,$img,$active]);$db->commit();
+    $q=$db->prepare('INSERT INTO ds_products(shop_id,category_id,name,description,price,image_url,active,unit,display_order) VALUES(?,?,?,?,?,?,?,?,?)');$q->execute([$sid,$cat?:null,$name,$desc,$price,$img,$active,$unit,$order]);$db->commit();
    }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
   }
   respond(['ok'=>true]);
