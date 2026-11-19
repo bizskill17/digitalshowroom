@@ -509,7 +509,7 @@ function adminShops(showHeading=true){
  return showHeading?panel('Seller & Shop Management',wrapTable(['Seller','Shop','Products','Status','Actions'],rows)):sellerPanel(wrapTable(['Seller','Shop','Products','Status','Actions'],rows));
 }
 let planRecords=[],plansLoaded=false,plansLoading=false,plansError='',planEditing=null;
-const planFeatureNames=[['analytics','Analytics'],['whatsapp_status','WhatsApp Status'],['catalogue_pdf','Catalogue PDF'],['remove_branding','Remove Showroom Branding']];
+const planFeatureNames=[['analytics','Analytics'],['whatsapp_status','WhatsApp Status'],['enquiry_inbox','Enquiry Inbox'],['excel_import','Excel Product Import'],['gallery_upload','Gallery Bulk Upload'],['catalogue_pdf','Catalogue PDF'],['remove_branding','Remove Showroom Branding']];
 function planText(value){return value===null||value===undefined?'Unlimited':String(value);}
 function adminPlans(){
  if(plansError)return sellerPanel('<div class="notice error">'+esc(plansError)+'</div>'+button('Retry','retry-plans','primary'));
@@ -519,10 +519,12 @@ function adminPlans(){
   return '<tr><td><strong>'+esc(p.name)+'</strong></td>'+
   '<td>₹'+monthly+'</td><td>₹'+annual+'</td><td>'+esc(planText(p.product_limit))+'</td>'+
   '<td>'+esc(planText(p.catalogue_limit))+'</td><td><span class="pill '+(!Number(p.active)?'off':'')+'">'+(Number(p.active)?'Active':'Inactive')+'</span></td>'+
-  '<td><button class="btn sm soft" type="button" data-edit-plan="'+Number(p.id)+'">Edit</button></td></tr>';
+  '<td><div class="inline-actions"><button class="btn sm soft" type="button" data-edit-plan="'+Number(p.id)+'">Edit</button>'+
+ (['free','pro'].includes(p.code)?'':'<button class="btn sm danger plan-delete" type="button" data-delete-plan="'+Number(p.id)+'">Delete</button>')+'</div></td></tr>';
  }).join('');
  const table='<div class="table-wrap"><table class="data-table plan-master-table"><thead><tr><th>Plan</th><th>Monthly (₹)</th><th>Annual (₹)</th><th>Products</th><th>Catalogues</th><th>Status</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
- return '<section class="panel plan-master-panel"><div class="panel-head plan-master-actions"><button class="btn primary" type="button" id="addPlan">+ Add Plan</button></div>'+table+'<dialog class="plan-editor-dialog" id="planEditorDialog" aria-labelledby="planEditorTitle"><div id="planEditorArea"></div></dialog></section>';
+ return '<section class="panel plan-master-panel"><div class="panel-head plan-master-actions"><button class="btn primary" type="button" id="addPlan">+ Add Plan</button></div>'+table+'<dialog class="plan-editor-dialog" id="planEditorDialog" aria-labelledby="planEditorTitle"><div id="planEditorArea"></div></dialog>'+
+ '<dialog class="plan-delete-dialog" id="planDeleteDialog" aria-labelledby="planDeleteTitle"><h2 id="planDeleteTitle">Delete Plan?</h2><p id="planDeleteMessage"></p><p class="plan-delete-warning">This action cannot be undone.</p><div class="plan-delete-actions"><button type="button" class="btn soft" id="cancelPlanDelete">Cancel</button><button type="button" class="btn danger" id="confirmPlanDelete">Delete Plan</button></div></dialog></section>';
 }
 function planEditor(id){
  const plan=id?planRecords.find(p=>Number(p.id)===Number(id)):null;
@@ -539,6 +541,7 @@ function planEditor(id){
  '<div class="field"><label for="planAnnual">Annual Price (₹) *</label><input id="planAnnual" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" required '+(free?'readonly':'')+' value="'+val(plan?.annual_price??'0.00')+'"></div>'+
  '<div class="field"><label for="planProductLimit">Product Limit'+(free?' *':'')+'</label><input id="planProductLimit" inputmode="numeric" pattern="[0-9]+" '+(free?'required':'')+' value="'+val(plan?.product_limit)+'"></div>'+
  '<div class="field"><label for="planCatalogueLimit">Catalogue Limit</label><input id="planCatalogueLimit" inputmode="numeric" pattern="[0-9]+" value="'+val(plan?.catalogue_limit)+'"></div>'+
+ '<div class="field"><label for="planPhotosLimit">Photos per Product *</label><input id="planPhotosLimit" inputmode="numeric" pattern="[1-6]" required value="'+val(plan?.photos_per_product??6)+'"></div>'+
  '<div class="field"><label for="planSort">Display Order</label><input id="planSort" inputmode="numeric" pattern="[0-9]+" value="'+val(plan?.sort_order??30)+'" required></div>'+
  
  '</div><div class="plan-feature-head">Plan Features</div><div class="plan-feature-grid">'+planFeatureNames.map(([k,n])=>checkbox(k,n)).join('')+'</div>'+
@@ -559,7 +562,7 @@ async function savePlan(event){
  if(!form||!save)return;
  const free=planEditing?.code==='free';
  const features=Object.fromEntries(planFeatureNames.map(([key])=>[key,!!form.querySelector('[data-plan-feature="'+key+'"]')?.checked]));
- const payload={id:Number(planEditing?.id||0),name:$('planName').value.trim(),code:planEditing?.code||'',monthly_price:$('planMonthly').value.trim(),annual_price:$('planAnnual').value.trim(),product_limit:$('planProductLimit').value.trim(),catalogue_limit:$('planCatalogueLimit').value.trim(),sort_order:$('planSort').value.trim(),description:planEditing?.description||'',features,active:free||$('planActive').checked};
+ const payload={id:Number(planEditing?.id||0),name:$('planName').value.trim(),code:planEditing?.code||'',monthly_price:$('planMonthly').value.trim(),annual_price:$('planAnnual').value.trim(),product_limit:$('planProductLimit').value.trim(),catalogue_limit:$('planCatalogueLimit').value.trim(),photos_per_product:$('planPhotosLimit').value.trim(),sort_order:$('planSort').value.trim(),description:planEditing?.description||'',features,active:free||$('planActive').checked};
  save.disabled=true;save.textContent='Saving...';msg.textContent='';
  try{
   await api('plan-save',payload);
@@ -580,6 +583,34 @@ async function loadPlans(){
 function wirePlans(){
  const add=$('addPlan');if(add)add.onclick=()=>planEditor(0);
  document.querySelectorAll('[data-edit-plan]').forEach(btn=>btn.onclick=()=>planEditor(Number(btn.dataset.editPlan)));
+ const dialog=$('planDeleteDialog'),cancel=$('cancelPlanDelete'),confirm=$('confirmPlanDelete');
+ if(dialog&&cancel&&confirm){
+  cancel.onclick=()=>dialog.close();
+  dialog.onclose=()=>{pendingPlanDeleteId=0;confirm.disabled=false;confirm.textContent='Delete Plan';};
+  document.querySelectorAll('[data-delete-plan]').forEach(btn=>btn.onclick=()=>{
+   const plan=planRecords.find(p=>Number(p.id)===Number(btn.dataset.deletePlan));
+   if(!plan||['free','pro'].includes(plan.code))return;
+   pendingPlanDeleteId=Number(plan.id);
+   $('planDeleteMessage').textContent='Delete the plan "'+plan.name+'"?';
+   confirm.disabled=Number(plan.active)===1;
+   confirm.textContent=Number(plan.active)===1?'Deactivate Plan First':'Delete Plan';
+   dialog.showModal();
+  });
+  confirm.onclick=deletePlan;
+ }
+}
+let pendingPlanDeleteId=0;
+async function deletePlan(){
+ const id=pendingPlanDeleteId,button=$('confirmPlanDelete');
+ if(!id||!button||button.disabled)return;
+ button.disabled=true;button.textContent='Deleting...';
+ try{
+  await api('plan-delete',{id});
+  $('planDeleteDialog')?.close();
+  pendingPlanDeleteId=0;plansLoaded=false;
+  await loadPlans();
+  flash('Plan deleted');
+ }catch(e){const msg=$('planDeleteMessage');if(msg)msg.textContent=e.message||'Unable to delete plan';button.disabled=false;button.textContent='Delete Plan';}
 }
 let sellerSubscriptionData=null,sellerSubscriptionLoading=false,sellerSubscriptionError='';
 function subscriptionPrice(price,period){
