@@ -196,12 +196,16 @@ function parseProductCsv(text){
  return rows;
 }
 function productImportPanel(){
- return panel('Import Products',
-  '<div class="field"><div class="inline-actions" style="justify-content:space-between;margin-bottom:7px"><label for="importCsvFile" style="margin:0">Choose Excel CSV File</label>'+button('Download Template','import-template')+'</div><input type="file" id="importCsvFile" accept=".csv,text/csv"></div>'+
-  '<div id="productImportNotice" class="hint" role="status" aria-live="polite"></div>'+
-  '<div id="productImportPreview"></div><div class="inline-actions" style="margin-top:14px">'+
+ return '<section class="panel product-import-panel">'+
+  '<div class="product-import-heading"><h2>Import Products</h2>'+button('Download Template','import-template')+'</div>'+
+  '<div class="field product-import-field"><label for="importCsvFile">Choose Excel CSV File</label>'+
+  '<div class="product-import-picker"><input type="file" id="importCsvFile" accept=".csv,text/csv" aria-describedby="importFileName">'+
+  '<span class="product-import-picker-label" aria-hidden="true">Choose File</span>'+
+  '<span id="importFileName" class="product-import-filename">No file selected</span></div></div>'+
+  '<div id="productImportNotice" class="product-import-notice" role="status" aria-live="polite" hidden></div>'+
+  '<div id="productImportPreview"></div><div class="inline-actions product-import-actions">'+
   '<button type="button" id="importSave" class="btn primary" disabled>Import Products</button> '+
-  button('Cancel','cancel')+'</div>');
+  button('Cancel','cancel')+'</div></section>';
 }
 function previewProductImport(){
  const target=$('productImportPreview');if(!target)return;
@@ -214,6 +218,7 @@ function previewProductImport(){
 async function loadProductImport(file){
  productImportRows=[];previewProductImport();
  const notice=$('productImportNotice');
+ notice.hidden=true;notice.textContent='';notice.classList.remove('error');
  if(!file)return;
  try{
   if(file.size>1024*1024)throw Error('The CSV must be below 1 MB.');
@@ -242,9 +247,8 @@ async function loadProductImport(file){
    return {name,category,price,unit:unit||'Piece',description,display_order:display_order||'0',visible:visible||'Yes'};
   });
   if(data.products.length+productImportRows.length>data.free_product_limit)throw Error('Product limit exceeded. You have '+data.products.length+' products, and your limit is '+data.free_product_limit+'.');
-  notice.textContent='Review the products below, then click Import Products. No existing records will be modified.';
   previewProductImport();
- }catch(error){productImportRows=[];previewProductImport();notice.textContent=error.message;}
+ }catch(error){productImportRows=[];previewProductImport();notice.hidden=false;notice.classList.add('error');notice.textContent=error.message;}
 }
 async function submitProductImport(){
  const button=$('importSave'),notice=$('productImportNotice');
@@ -255,7 +259,7 @@ async function submitProductImport(){
   if(!result.ok)throw Error('Import not confirmed.');
   productImportRows=[];view='products';await refresh();
   flash(result.created+' products imported successfully.');
- }catch(error){notice.textContent=error.message;button.disabled=false;button.textContent='Import Products';}
+ }catch(error){notice.hidden=false;notice.classList.add('error');notice.textContent=error.message;button.disabled=false;button.textContent='Import Products';}
 }
 
 let galleryDrafts=[];
@@ -508,7 +512,7 @@ function wireForms(){
  if(gallerySave)gallerySave.onclick=saveGalleryDrafts;
 
  const csv=$('importCsvFile');
- if(csv)csv.onchange=()=>loadProductImport(csv.files?.[0]);
+ if(csv)csv.onchange=()=>{const file=csv.files?.[0];const name=$('importFileName');if(name){name.textContent=file?.name||'No file selected';name.title=file?.name||'';}loadProductImport(file);};
  const importButton=$('importSave');
  if(importButton)importButton.onclick=submitProductImport;
 
