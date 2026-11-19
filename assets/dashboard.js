@@ -37,7 +37,11 @@ function enquiryPanel(){
   }).join('');
   const ref='ENQ-'+String(e.id).padStart(5,'0');
   const type=e.kind==='quotation'?'Quotation':'Order';
-  const contact=e.customer_mobile?'<a href="https://wa.me/'+encodeURIComponent(e.customer_mobile)+'" target="_blank" rel="noopener">WhatsApp Customer</a>':'Contact not provided';
+  const customerName=String(e.customer_name||'').trim();
+  const digits=String(e.customer_mobile||'').replace(/[^0-9]/g,'');
+  const whatsappNumber=digits.length===10?'91'+digits:digits;
+  const contact='<div class="enquiry-customer">'+(customerName?'<b>'+esc(customerName)+'</b>':'')+
+   (digits?'<a href="https://wa.me/'+encodeURIComponent(whatsappNumber)+'" target="_blank" rel="noopener">'+esc(digits)+'</a>':'<span>Contact not provided</span>')+'</div>';
   const details='<details><summary>View '+(e.items||[]).length+' item(s)</summary><div class="enquiry-items">'+items+'</div></details>';
   const options=['New','Follow-up','Completed'].map(v=>'<option value="'+esc(v)+'" '+(e.status===v?'selected':'')+'>'+esc(v)+'</option>').join('');
   const status='<select class="enquiry-status" data-enquiry-status="'+Number(e.id)+'" aria-label="Status of '+ref+'">'+options+'</select>';
