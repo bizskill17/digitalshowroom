@@ -29,6 +29,8 @@ function setup(PDO $db):void{
  $db->exec("CREATE TABLE IF NOT EXISTS ds_catalogues (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,shop_id BIGINT UNSIGNED NOT NULL,name VARCHAR(130) NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,INDEX(shop_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("CREATE TABLE IF NOT EXISTS ds_catalogue_products (catalogue_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NOT NULL,PRIMARY KEY(catalogue_id,product_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("CREATE TABLE IF NOT EXISTS ds_product_images (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,shop_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NOT NULL,image_url VARCHAR(500) NOT NULL,display_order INT UNSIGNED NOT NULL DEFAULT 0,UNIQUE KEY product_image_unique (product_id,image_url),INDEX(shop_id,product_id,display_order)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+ $db->exec("CREATE TABLE IF NOT EXISTS ds_enquiries (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,shop_id BIGINT UNSIGNED NOT NULL,kind ENUM('order','quotation') NOT NULL,customer_name VARCHAR(120) NOT NULL DEFAULT '',customer_mobile VARCHAR(15) NOT NULL DEFAULT '',status ENUM('New','Follow-up','Completed') NOT NULL DEFAULT 'New',estimated_total DECIMAL(12,2) NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,INDEX(shop_id,created_at),INDEX(shop_id,status)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+ $db->exec("CREATE TABLE IF NOT EXISTS ds_enquiry_items (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,enquiry_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NULL,product_name VARCHAR(180) NOT NULL,unit VARCHAR(30) NOT NULL,quantity INT UNSIGNED NOT NULL,unit_price DECIMAL(12,2) NULL,INDEX(enquiry_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("CREATE TABLE IF NOT EXISTS ds_settings (setting_key VARCHAR(80) PRIMARY KEY,setting_value VARCHAR(255) NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("INSERT IGNORE INTO ds_settings(setting_key,setting_value) VALUES ('free_product_limit','5')");
  // Add a per-shop brand colour without changing existing shop records.
@@ -89,6 +91,23 @@ try{
    respond(['shop'=>$shop,'categories'=>$cats,'products'=>$products]);
   }
   $u=currentUser($db);if(!$u)respond(['error'=>'Please sign in'],401);
+  if($action==='enquiries'){
+   if($u['role']!=='seller')respond(['error'=>'Seller access required'],403);
+   $shop=shopFor($db,(int)$u['id']);$sid=(int)$shop['id'];
+   $q=$db->prepare('SELECT id,kind,customer_name,customer_mobile,status,estimated_total,created_at FROM ds_enquiries WHERE shop_id=? ORDER BY id DESC LIMIT 200');
+   $q->execute([$sid]);$enquiries=$q->fetchAll();
+   $ids=array_map(static fn($e)=>(int)$e['id'],$enquiries);
+   $items=[];
+   if($ids){
+    $placeholder=implode(',',array_fill(0,count($ids),'?'));
+    $q=$db->prepare("SELECT enquiry_id,product_name,unit,quantity,unit_price FROM ds_enquiry_items WHERE enquiry_id IN ($placeholder) ORDER BY id");
+    $q->execute($ids);
+    foreach($q->fetchAll() as $item)$items[(int)$item['enquiry_id']][]=$item;
+   }
+   foreach($enquiries as &$enquiry)$enquiry['items']=$items[(int)$enquiry['id']]??[];
+   unset($enquiry);
+   respond(['enquiries'=>$enquiries]);
+  }
   if($action==='dashboard'){
    if($u['role']==='admin'){
     $counts=['sellers'=>(int)$db->query("SELECT COUNT(*) FROM ds_users WHERE role='seller'")->fetchColumn(),'shops'=>(int)$db->query('SELECT COUNT(*) FROM ds_shops')->fetchColumn(),'products'=>(int)$db->query('SELECT COUNT(*) FROM ds_products')->fetchColumn(),'free_product_limit'=>quota($db)];
@@ -107,6 +126,48 @@ try{
  }
  if($method!=='POST')respond(['error'=>'Method not allowed'],405);
  checkCsrf();
+ if($action==='public-enquiry'){
+  // A public showroom visitor can initiate an enquiry without creating an account.
+  $d=body();$slug=clean($d['slug']??'',90);$kind=(string)($d['kind']??'');
+  if(!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/',$slug)||!in_array($kind,['order','quotation'],true))respond(['error'=>'Invalid shop enquiry'],422);
+  $q=$db->prepare('SELECT id FROM ds_shops WHERE slug=? AND active=1');$q->execute([$slug]);$shopId=(int)$q->fetchColumn();
+  if(!$shopId)respond(['error'=>'Shop unavailable'],404);
+  $lines=$d['items']??null;
+  if(!is_array($lines)||count($lines)<1||count($lines)>50)respond(['error'=>'Choose 1 to 50 products'],422);
+  // Per-session limiter; stronger IP-based throttling can be added before public launch.
+  $now=time();$recent=array_values(array_filter($_SESSION['enquiry_clicks']??[],static fn($t)=>is_int($t)&&$t>$now-300));
+  if(count($recent)>=15)respond(['error'=>'Too many enquiries. Please try again shortly.'],429);
+  $wanted=[];
+  foreach($lines as $line){
+   if(!is_array($line))respond(['error'=>'Invalid selected items'],422);
+   $id=filter_var($line['id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+   $qty=filter_var($line['quantity']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>999]]);
+   if($id===false||$qty===false||isset($wanted[$id]))respond(['error'=>'Invalid product quantity'],422);
+   $wanted[$id]=$qty;
+  }
+  $placeholders=implode(',',array_fill(0,count($wanted),'?'));
+  $q=$db->prepare("SELECT id,name,unit,price FROM ds_products WHERE shop_id=? AND active=1 AND id IN ($placeholders)");
+  $q->execute(array_merge([$shopId],array_keys($wanted)));
+  $found=$q->fetchAll();
+  if(count($found)!==count($wanted))respond(['error'=>'A selected product is no longer available. Refresh the showroom.'],409);
+  $total=0.;$hasUnknown=false;
+  foreach($found as $p){if($p['price']===null)$hasUnknown=true;else $total+=(float)$p['price']*$wanted[(int)$p['id']];}
+  $totalValue=$hasUnknown?null:number_format($total,2,'.','');
+  $name=trim((string)($d['customer_name']??''));
+  $mobile=preg_replace('/\\D/','',(string)($d['customer_mobile']??''));
+  if(mb_strlen($name)>120||strlen($mobile)>15)respond(['error'=>'Invalid customer contact details'],422);
+  if($mobile!==''&&(strlen($mobile)<10||strlen($mobile)>15))respond(['error'=>'Enter a valid mobile number'],422);
+  $db->beginTransaction();
+  try{
+   $q=$db->prepare('INSERT INTO ds_enquiries(shop_id,kind,customer_name,customer_mobile,estimated_total) VALUES(?,?,?,?,?)');
+   $q->execute([$shopId,$kind,$name,$mobile,$totalValue]);$enquiryId=(int)$db->lastInsertId();
+   $q=$db->prepare('INSERT INTO ds_enquiry_items(enquiry_id,product_id,product_name,unit,quantity,unit_price) VALUES(?,?,?,?,?,?)');
+   foreach($found as $p)$q->execute([$enquiryId,(int)$p['id'],$p['name'],$p['unit'],$wanted[(int)$p['id']],$p['price']]);
+   $db->commit();
+  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+  $recent[]=$now;$_SESSION['enquiry_clicks']=$recent;
+  respond(['ok'=>true,'enquiry_id'=>$enquiryId]);
+ }
  if($action==='register'){
   $d=body();$name=clean($d['name']??'');$email=strtolower(clean($d['email']??'',190));$password=(string)($d['password']??'');$shopName=clean($d['shop_name']??'');$phone=preg_replace('/\D/','',(string)($d['phone']??''));$slug=strtolower(clean($d['slug']??'',90));
   if(strlen($password)<4||strlen($password)>200||!filter_var($email,FILTER_VALIDATE_EMAIL)||!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/',$slug)||strlen($slug)<3||!$name||!$shopName||strlen($phone)<10||strlen($phone)>15)respond(['error'=>'Check required fields. Password must be at least 4 characters; shop link uses lowercase letters, numbers or hyphens.'],422);
@@ -169,6 +230,16 @@ try{
   respond(['error'=>'Unsupported admin operation'],403);
  }
  $shop=shopFor($db,(int)$u['id']);$sid=(int)$shop['id'];
+ if($action==='enquiry-status'){
+  $id=filter_var($d['id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+  $status=(string)($d['status']??'');
+  if($id===false||!in_array($status,['New','Follow-up','Completed'],true))respond(['error'=>'Invalid enquiry update'],422);
+  $q=$db->prepare('UPDATE ds_enquiries SET status=? WHERE id=? AND shop_id=?');
+  $q->execute([$status,$id,$sid]);
+  $check=$db->prepare('SELECT id FROM ds_enquiries WHERE id=? AND shop_id=?');
+  $check->execute([$id,$sid]);if(!$check->fetchColumn())respond(['error'=>'Enquiry not found'],404);
+  respond(['ok'=>true]);
+ }
  if($action==='shop'){
   $name=clean($d['name']??'');$tagline=clean($d['tagline']??'',255);$phone=preg_replace('/\D/','',(string)($d['phone']??''));$address=clean($d['address']??'',255);$logo=clean($d['logo_url']??'',500);
   $palette=['#E83F7E','#1D4ED8','#0F766E','#6D28D9','#9A3412','#334155'];
