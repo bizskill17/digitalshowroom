@@ -12,7 +12,33 @@ const api=async(action,payload)=>{let res=await fetch('/api/app.php?action='+enc
 function updateSidebarAccount(){if(!user)return;$('userName').textContent=user.name;const initials=user.name.trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();$('userInitials').textContent=initials||'U';$('userRole').textContent=user.role==='admin'?'Admin':'Seller';}
 function flash(message,bad=false){$('flash').innerHTML='<div class="notice '+(bad?'error':'success')+'">'+esc(message)+'</div>';setTimeout(()=>{$('flash').innerHTML='';},6000)}
 const button=(name,fn,cls='soft')=>'<button class="btn sm '+cls+'" data-do="'+esc(fn)+'">'+esc(name)+'</button>';
-function nav(){const menus=data.role==='admin'?[['dashboard','Dashboard'],['shops','Seller & Shop Management'],['settings','Platform Settings'],['plans','Subscription Plans'],['payments','Payments']]:[['dashboard','Dashboard'],['profile','Shop Profile'],['categories','Product Categories'],['products','Products'],['catalogues','Catalogues'],['enquiries','Enquiry Inbox'],['analytics','Analytics'],['status','WhatsApp Status'],['public','Public Showroom'],['subscription','Subscription']];$('sideNav').innerHTML=menus.map(([id,label])=>'<button class="side-link '+(view===id?'active':'')+'" data-nav="'+id+'">'+label+'</button>').join('');document.querySelectorAll('[data-nav]').forEach(n=>n.onclick=()=>navigateTo(n.dataset.nav));}
+function sidebarIcon(id){
+ const paths={
+  dashboard:'<path d="m3 10 9-7 9 7"/><path d="M5 9v12h14V9"/><path d="M9 21v-7h6v7"/>',
+  profile:'<path d="M3 10h18l-2-6H5l-2 6Z"/><path d="M5 10v11h14V10"/><path d="M9 21v-7h6v7"/>',
+  categories:'<path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/>',
+  products:'<path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="M3 7v10l9 5 9-5V7"/><path d="M12 12v10"/>',
+  catalogues:'<path d="M12 7c-3-3-6-3-10-2v15c4-1 7-1 10 2 3-3 6-3 10-2V5c-4-1-7-1-10 2Z"/><path d="M12 7v15"/>',
+  enquiries:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 7 9-7"/>',
+  analytics:'<path d="M3 21h18"/><rect x="5" y="12" width="4" height="9"/><rect x="11" y="4" width="4" height="17"/><rect x="17" y="9" width="4" height="12"/>',
+  status:'<path d="M20 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.1-4.4A8.5 8.5 0 1 1 20 11.5Z"/><path d="M9 9c.3 2 2 4 4.5 5l1.5-1"/>',
+  public:'<path d="M13 4h7v7"/><path d="m20 4-9 9"/><path d="M20 13v7H4V4h7"/>',
+  subscription:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/>',
+  shops:'<path d="M3 10h18l-2-6H5l-2 6Z"/><path d="M5 10v11h14V10"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M19 5l-2 2M7 17l-2 2"/>',
+  plans:'<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 9h8M8 14h8"/>',
+  payments:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/>'
+ };
+ return '<svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(paths[id]||paths.dashboard)+'</svg>';
+}
+function nav(){
+ const menus=data.role==='admin'
+ ?[['dashboard','Dashboard'],['shops','Seller & Shop Management'],['settings','Platform Settings'],['plans','Subscription Plans'],['payments','Payments']]
+ :[['dashboard','Dashboard'],['profile','Shop Profile'],['categories','Product Categories'],['products','Products'],['catalogues','Catalogues'],['enquiries','Enquiry Inbox'],['analytics','Analytics'],['status','WhatsApp Status'],['public','Public Showroom'],['subscription','Subscription']];
+ $('sideNav').innerHTML=menus.map(([id,label])=>'<button class="side-link '+(view===id?'active':'')+'" data-nav="'+id+'" '+(view===id?'aria-current="page"':'')+'>'+sidebarIcon(id)+'<span>'+label+'</span></button>').join('');
+ document.querySelectorAll('[data-nav]').forEach(n=>n.onclick=()=>navigateTo(n.dataset.nav));
+}
+
 function title(t){$('pageTitle').textContent=t;}
 function stat(name,value,klass='blue',hint=''){return '<div class="stat '+klass+'"><span>'+esc(name)+'</span><b>'+esc(value)+'</b><small>'+esc(hint)+'</small></div>'}
 function tdActions(edit,del){return '<div class="inline-actions">'+button('Edit',edit)+button('Delete',del,'danger')+'</div>'}
