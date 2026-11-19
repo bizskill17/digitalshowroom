@@ -1,0 +1,9 @@
+# Image files remain publicly viewable, but uploaded scripts must not execute.
+<FilesMatch "\.(?i:php|phtml|phar|php[0-9]?|cgi|pl|py|sh)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Deny from all
+  </IfModule>
+</FilesMatch>
