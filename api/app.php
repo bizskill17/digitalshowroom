@@ -212,6 +212,72 @@ try{
   $q=$db->prepare('SELECT COUNT(*) FROM ds_products WHERE category_id=? AND shop_id=?');$q->execute([$id,$sid]);if($q->fetchColumn())respond(['error'=>'Move or delete category products first'],409);
   $db->prepare('DELETE FROM ds_categories WHERE id=?')->execute([$id]);respond(['ok'=>true]);
  }
+ if($action==='product-import'){
+  $rows=$d['rows']??null;
+  if(!is_array($rows)||count($rows)<1||count($rows)>100)respond(['error'=>'Import 1 to 100 products per file'],422);
+  $cats=$db->prepare('SELECT id,name FROM ds_categories WHERE shop_id=?');
+  $cats->execute([$sid]);$categoryIds=[];
+  foreach($cats->fetchAll() as $category)$categoryIds[mb_strtolower(trim($category['name']))]=(int)$category['id'];
+  $validated=[];$seen=[];
+  foreach($rows as $i=>$row){
+   $line=$i+2;
+   if(!is_array($row))respond(['error'=>'Invalid row '.$line],422);
+   $rawName=trim((string)($row['name']??''));
+   $name=clean($rawName,180);
+   if($rawName===''||mb_strlen($rawName)>180)respond(['error'=>'Invalid product name on row '.$line],422);
+   $key=mb_strtolower($name);
+   if(isset($seen[$key]))respond(['error'=>'Duplicate product name on rows '.$seen[$key].' and '.$line],422);
+   $seen[$key]=$line;
+   $category=trim((string)($row['category']??''));
+   $cid=null;
+   if($category!==''){
+    $lookup=mb_strtolower($category);
+    if(!array_key_exists($lookup,$categoryIds))respond(['error'=>'Unknown category on row '.$line.': '.$category],422);
+    $cid=$categoryIds[$lookup];
+   }
+   $rawPrice=trim((string)($row['price']??''));
+   $price=null;
+   if($rawPrice!==''&&mb_strtolower($rawPrice)!=='on request'){
+    if(!preg_match('/^(?:0|[1-9][0-9]{0,9})(?:\\.[0-9]{1,2})?$/',$rawPrice)||((float)$rawPrice)>9999999999)respond(['error'=>'Invalid price on row '.$line],422);
+    $price=number_format((float)$rawPrice,2,'.','');
+   }
+   $rawUnit=trim((string)($row['unit']??'Piece'));
+   $unit=clean($rawUnit,30);
+   if($unit===''||mb_strlen($rawUnit)>30)respond(['error'=>'Invalid unit on row '.$line],422);
+   $rawDesc=trim((string)($row['description']??''));
+   if(mb_strlen($rawDesc)>2500)respond(['error'=>'Description too long on row '.$line],422);
+   $desc=clean($rawDesc,2500);
+   $order=filter_var($row['display_order']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>999999]]);
+   if($order===false)respond(['error'=>'Invalid display order on row '.$line],422);
+   $visible=strtolower(trim((string)($row['visible']??'yes')));
+   if(!in_array($visible,['yes','no'],true))respond(['error'=>'Visible must be Yes or No on row '.$line],422);
+   $validated[]=[$sid,$cid,$name,$desc,$price,null,$visible==='yes'?1:0,$unit,$order];
+  }
+  $db->beginTransaction();
+  try{
+   // All rows are inserted together, or none. Product limits remain enforced.
+   $db->query("SELECT setting_value FROM ds_settings WHERE setting_key='free_product_limit' FOR UPDATE")->fetchColumn();
+   $count=$db->prepare('SELECT COUNT(*) FROM ds_products WHERE shop_id=?');
+   $count->execute([$sid]);
+   $existing=(int)$count->fetchColumn();
+   if($existing+count($validated)>quota($db)){
+    $db->rollBack();
+    respond(['error'=>'Product limit exceeded: '.($existing).' existing, '.count($validated).' imported, '.quota($db).' allowed. No products imported.'],403);
+   }
+   $names=$db->prepare('SELECT name FROM ds_products WHERE shop_id=?');
+   $names->execute([$sid]);$existingNames=[];
+   foreach($names->fetchAll(PDO::FETCH_COLUMN) as $existingName)$existingNames[mb_strtolower(trim($existingName))]=true;
+   foreach($validated as $index=>$values){
+    if(isset($existingNames[mb_strtolower($values[2])])){
+     $db->rollBack();respond(['error'=>'Product already exists on row '.($index+2).': '.$values[2].'. No products imported.'],409);
+    }
+   }
+   $save=$db->prepare('INSERT INTO ds_products(shop_id,category_id,name,description,price,image_url,active,unit,display_order) VALUES(?,?,?,?,?,?,?,?,?)');
+   foreach($validated as $values)$save->execute($values);
+   $db->commit();
+   respond(['ok'=>true,'created'=>count($validated)]);
+  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+ }
  if($action==='product-save'){
   $id=(int)($d['id']??0);$name=clean($d['name']??'',180);$desc=clean($d['description']??'',2500);$img=clean($d['image_url']??'',500);$cat=(int)($d['category_id']??0);$price=$d['price']??null;$active=!empty($d['active'])?1:0;
   $unit=clean($d['unit']??'Piece',30);
