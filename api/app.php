@@ -148,6 +148,24 @@ try{
    if($u['role']!=='admin')respond(['error'=>'Administrator access required'],403);
    respond(['plans'=>subscriptionPlans($db),'free_product_limit'=>quota($db)]);
   }
+  if($action==='seller-subscription'){
+   if($u['role']!=='seller')respond(['error'=>'Seller access required'],403);
+   $shop=shopFor($db,(int)$u['id']);
+   $sid=(int)$shop['id'];
+   $q=$db->prepare('SELECT COUNT(*) FROM ds_products WHERE shop_id=?');
+   $q->execute([$sid]);$used=(int)$q->fetchColumn();
+   $q=$db->prepare('SELECT COUNT(*) FROM ds_catalogues WHERE shop_id=?');
+   $q->execute([$sid]);$catalogues=(int)$q->fetchColumn();
+   // This stage does not assign paid subscriptions. All existing sellers remain on Free.
+   $plans=array_values(array_filter(subscriptionPlans($db),static fn($p)=>(int)$p['active']===1||$p['code']==='free'||$p['code']==='pro'));
+   foreach($plans as &$plan){
+    $plan['available_for_purchase']=false;
+    $plan['current']=$plan['code']==='free';
+   }
+   unset($plan);
+   respond(['current_plan'=>'free','product_usage'=>$used,'catalogue_usage'=>$catalogues,
+    'free_product_limit'=>quota($db),'plans'=>$plans,'checkout_enabled'=>false]);
+  }
   if($action==='analytics'){
    if($u['role']!=='seller')respond(['error'=>'Seller access required'],403);
    $shop=shopFor($db,(int)$u['id']);$sid=(int)$shop['id'];
