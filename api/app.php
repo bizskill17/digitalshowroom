@@ -31,6 +31,7 @@ function setup(PDO $db):void{
  $db->exec("CREATE TABLE IF NOT EXISTS ds_product_images (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,shop_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NOT NULL,image_url VARCHAR(500) NOT NULL,display_order INT UNSIGNED NOT NULL DEFAULT 0,UNIQUE KEY product_image_unique (product_id,image_url),INDEX(shop_id,product_id,display_order)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("CREATE TABLE IF NOT EXISTS ds_enquiries (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,shop_id BIGINT UNSIGNED NOT NULL,kind ENUM('order','quotation') NOT NULL,customer_name VARCHAR(120) NOT NULL DEFAULT '',customer_mobile VARCHAR(15) NOT NULL DEFAULT '',status ENUM('New','Follow-up','Completed') NOT NULL DEFAULT 'New',estimated_total DECIMAL(12,2) NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,INDEX(shop_id,created_at),INDEX(shop_id,status)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("CREATE TABLE IF NOT EXISTS ds_enquiry_items (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,enquiry_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NULL,product_name VARCHAR(180) NOT NULL,unit VARCHAR(30) NOT NULL,quantity INT UNSIGNED NOT NULL,unit_price DECIMAL(12,2) NULL,INDEX(enquiry_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+ $db->exec("CREATE TABLE IF NOT EXISTS ds_analytics_events (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,shop_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NULL,event_type ENUM('visit','product_view','whatsapp_click') NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,INDEX(shop_id,created_at,event_type),INDEX(shop_id,product_id,created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("CREATE TABLE IF NOT EXISTS ds_settings (setting_key VARCHAR(80) PRIMARY KEY,setting_value VARCHAR(255) NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("INSERT IGNORE INTO ds_settings(setting_key,setting_value) VALUES ('free_product_limit','5')");
  // Add a per-shop brand colour without changing existing shop records.
@@ -91,6 +92,33 @@ try{
    respond(['shop'=>$shop,'categories'=>$cats,'products'=>$products,'csrf'=>$_SESSION['csrf']]);
   }
   $u=currentUser($db);if(!$u)respond(['error'=>'Please sign in'],401);
+  if($action==='analytics'){
+   if($u['role']!=='seller')respond(['error'=>'Seller access required'],403);
+   $shop=shopFor($db,(int)$u['id']);$sid=(int)$shop['id'];
+   $from=(string)($_GET['from']??'');$to=(string)($_GET['to']??'');
+   foreach([$from,$to] as $date){
+    $parsed=DateTimeImmutable::createFromFormat('!Y-m-d',$date);
+    if(!$parsed||$parsed->format('Y-m-d')!==$date)respond(['error'=>'Invalid analytics date'],422);
+   }
+   if($from>$to)respond(['error'=>'From Date must not be after To Date'],422);
+   $days=(new DateTimeImmutable($from))->diff(new DateTimeImmutable($to))->days;
+   if($days>365)respond(['error'=>'Select a date range of up to 366 days'],422);
+   $end=(new DateTimeImmutable($to))->modify('+1 day')->format('Y-m-d');
+   $stats=['visit'=>0,'product_view'=>0,'whatsapp_click'=>0];
+   $q=$db->prepare('SELECT event_type,COUNT(*) total FROM ds_analytics_events WHERE shop_id=? AND created_at>=? AND created_at<? GROUP BY event_type');
+   $q->execute([$sid,$from,$end]);
+   foreach($q->fetchAll() as $row)$stats[$row['event_type']]=(int)$row['total'];
+   $q=$db->prepare("SELECT DATE(created_at) AS day,event_type,COUNT(*) AS total FROM ds_analytics_events WHERE shop_id=? AND created_at>=? AND created_at<? GROUP BY DATE(created_at),event_type ORDER BY day ASC");
+   $q->execute([$sid,$from,$end]);$trend=[];
+   foreach($q->fetchAll() as $row){$day=$row['day'];if(!isset($trend[$day]))$trend[$day]=['date'=>$day,'visit'=>0,'product_view'=>0,'whatsapp_click'=>0];$trend[$day][$row['event_type']]=(int)$row['total'];}
+   $q=$db->prepare("SELECT COALESCE(p.name,'Deleted product') product_name,e.product_id,COUNT(*) views FROM ds_analytics_events e LEFT JOIN ds_products p ON p.id=e.product_id AND p.shop_id=e.shop_id WHERE e.shop_id=? AND e.event_type='product_view' AND e.created_at>=? AND e.created_at<? GROUP BY e.product_id,p.name ORDER BY views DESC LIMIT 10");
+   $q->execute([$sid,$from,$end]);$topViews=$q->fetchAll();
+   $q=$db->prepare('SELECT i.product_name,COUNT(DISTINCT e.id) enquiries,SUM(i.quantity) quantity FROM ds_enquiries e JOIN ds_enquiry_items i ON i.enquiry_id=e.id WHERE e.shop_id=? AND e.created_at>=? AND e.created_at<? GROUP BY i.product_name ORDER BY enquiries DESC,quantity DESC LIMIT 10');
+   $q->execute([$sid,$from,$end]);$topEnquiries=$q->fetchAll();
+   $q=$db->prepare('SELECT COUNT(*) FROM ds_enquiries WHERE shop_id=? AND created_at>=? AND created_at<?');
+   $q->execute([$sid,$from,$end]);$stats['enquiries']=(int)$q->fetchColumn();
+   respond(['stats'=>$stats,'trend'=>array_values($trend),'top_views'=>$topViews,'top_enquiries'=>$topEnquiries,'from'=>$from,'to'=>$to]);
+  }
   if($action==='enquiries'){
    if($u['role']!=='seller')respond(['error'=>'Seller access required'],403);
    $shop=shopFor($db,(int)$u['id']);$sid=(int)$shop['id'];
@@ -126,6 +154,35 @@ try{
  }
  if($method!=='POST')respond(['error'=>'Method not allowed'],405);
  checkCsrf();
+ if($action==='track-event'){
+  $d=body();$slug=clean($d['slug']??'',90);$type=(string)($d['type']??'');
+  if(!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/',$slug)||!in_array($type,['visit','product_view','whatsapp_click'],true))respond(['error'=>'Invalid analytics event'],422);
+  $q=$db->prepare('SELECT id FROM ds_shops WHERE slug=? AND active=1');$q->execute([$slug]);$sid=(int)$q->fetchColumn();
+  if(!$sid)respond(['error'=>'Shop unavailable'],404);
+  $productId=null;
+  if($type==='product_view'){
+   $productId=filter_var($d['product_id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+   if($productId===false)respond(['error'=>'Invalid product'],422);
+   $q=$db->prepare('SELECT id FROM ds_products WHERE id=? AND shop_id=? AND active=1');
+   $q->execute([$productId,$sid]);if(!$q->fetchColumn())respond(['error'=>'Product unavailable'],404);
+  }
+  // A visit is unique per browser session and shop; product view once per
+  // session/product. WhatsApp clicks are repeatable with a bounded session rate.
+  $key=$type.':'.$sid.':'.($productId??0);
+  $now=time();$events=$_SESSION['analytics_events']??[];
+  if(!is_array($events))$events=[];
+  $events=array_filter($events,static fn($at)=>is_int($at)&&$at>$now-86400);
+  if($type!=='whatsapp_click'&&isset($events[$key]))respond(['ok'=>true,'deduplicated'=>true]);
+  $clicks=$_SESSION['analytics_click_times']??[];
+  if(!is_array($clicks))$clicks=[];
+  $clicks=array_values(array_filter($clicks,static fn($at)=>is_int($at)&&$at>$now-60));
+  if(count($clicks)>=30)respond(['error'=>'Event rate limit reached'],429);
+  $clicks[]=$now;$_SESSION['analytics_click_times']=$clicks;
+  $q=$db->prepare('INSERT INTO ds_analytics_events(shop_id,product_id,event_type) VALUES(?,?,?)');
+  $q->execute([$sid,$productId,$type]);
+  $events[$key]=$now;$_SESSION['analytics_events']=$events;
+  respond(['ok'=>true]);
+ }
  if($action==='public-enquiry'){
   // A public showroom visitor can initiate an enquiry without creating an account.
   $d=body();$slug=clean($d['slug']??'',90);$kind=(string)($d['kind']??'');
