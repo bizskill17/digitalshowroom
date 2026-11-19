@@ -87,9 +87,9 @@ async function uploadImage(input,target){if(!input.files||!input.files[0])return
 function wireForms(){
  let uploader=$('shopLogoFile');if(uploader)uploader.onchange=()=>uploadImage(uploader,$('shopLogo'));
  uploader=$('productImageFile');if(uploader)uploader.onchange=()=>uploadImage(uploader,$('productImage'));
- let f=$('shopForm');if(f)f.onsubmit=e=>{e.preventDefault();post('shop',{name:$('shopName').value,phone:$('shopPhone').value,tagline:$('shopTag').value,address:$('shopAddress').value,logo_url:$('shopLogo').value});};
- f=$('productForm');if(f)f.onsubmit=e=>{e.preventDefault();post('product-save',{id:f.dataset.id?+f.dataset.id:0,name:$('productName').value,category_id:$('productCat').value,description:$('productDesc').value,price:$('productPrice').value,image_url:$('productImage').value,active:$('productActive').checked},'Product saved');};
- f=$('categoryForm');if(f)f.onsubmit=async e=>{
+ {const f=$('shopForm');if(f)f.onsubmit=e=>{e.preventDefault();post('shop',{name:$('shopName').value,phone:$('shopPhone').value,tagline:$('shopTag').value,address:$('shopAddress').value,logo_url:$('shopLogo').value});};}
+ {const f=$('productForm');if(f)f.onsubmit=e=>{e.preventDefault();post('product-save',{id:f.dataset.id?+f.dataset.id:0,name:$('productName').value,category_id:$('productCat').value,description:$('productDesc').value,price:$('productPrice').value,image_url:$('productImage').value,active:$('productActive').checked},'Product saved');};}
+ {const f=$('categoryForm');if(f)f.onsubmit=async e=>{
   e.preventDefault();
   const name=$('categoryName').value.trim();
   const id=f.dataset.id?+f.dataset.id:0;
@@ -109,9 +109,9 @@ function wireForms(){
    notice.className='notice error';notice.textContent=error.message;
    saveButton.disabled=false;saveButton.textContent='Save Category';
   }
- };
- f=$('catalogueForm');if(f)f.onsubmit=e=>{e.preventDefault();post('catalogue-save',{id:f.dataset.id?+f.dataset.id:0,name:$('catalogueName').value,product_ids:[...document.querySelectorAll('[name="catalogueProduct"]:checked')].map(x=>+x.value)});};
- f=$('settingsForm');if(f)f.onsubmit=e=>{e.preventDefault();post('settings',{free_product_limit:Number($('freeLimit').value)});};
+ };}
+ {const f=$('catalogueForm');if(f)f.onsubmit=e=>{e.preventDefault();post('catalogue-save',{id:f.dataset.id?+f.dataset.id:0,name:$('catalogueName').value,product_ids:[...document.querySelectorAll('[name="catalogueProduct"]:checked')].map(x=>+x.value)});};}
+ {const f=$('settingsForm');if(f)f.onsubmit=e=>{e.preventDefault();post('settings',{free_product_limit:Number($('freeLimit').value)});};}
 }
 async function doAction(action){
  if(action==='copyLink'){try{await navigator.clipboard.writeText(shopUrl());flash('Shop link copied');}catch(e){flash('Copy unavailable in this browser',true)}return;}
