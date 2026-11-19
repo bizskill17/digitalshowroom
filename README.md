@@ -8,9 +8,19 @@ A multi-seller WhatsApp-first showroom application on Hostinger PHP/MySQL.
 - `/admin-login.html` — separate admin-only login (no public admin registration)
 - `/admin-setup.html` — protected one-time first Admin creation (requires Actions secret)
 - `/dashboard.html` — seller dashboard or admin dashboard according to the authenticated role
-- `/shop.html?slug=your-shop` — dynamic public buyer-facing showroom
+- `/your-shop` — friendly public buyer-facing showroom URL; internally rewrites to `shop.html` and reads the shop from MySQL
+- `/shop.html?slug=your-shop` — legacy public URL remains supported for existing shares
 - `/demo.html` — preserved original Bliss Bites demo
 - `/api/health.php` — database health check
+
+## Friendly URL deployment notes
+
+The repository includes a root `.htaccess` for Apache/LiteSpeed rewrite support.
+The URL `/bca-momo-wala` serves the existing `shop.html`, which loads the correct shop from MySQL.
+Existing files and folders are excluded from rewriting. If the live Hostinger root
+already contains custom `.htaccess` directives, merge and retain those directives
+before production deployment. Confirm both the new URL and the existing
+`/shop.html?slug=bca-momo-wala` URL work.
 
 ## Functional features
 - Seller registration and login with hashed passwords, session authentication and CSRF checks
