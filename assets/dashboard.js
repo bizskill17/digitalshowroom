@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 let csrf='',user=null,data=null,view='dashboard';
 const sellerViews=['dashboard','profile','categories','products','catalogues','enquiries','analytics','status','public','subscription'];
-const adminViews=['dashboard','shops','settings','plans','payments'];
+const adminViews=['dashboard','shops','plans','payments'];
 function getViewFromUrl(){const key=decodeURIComponent(location.hash.slice(1));return (user?.role==='admin'?adminViews:sellerViews).includes(key)?key:'dashboard';}
 function navigateTo(next){view=next;if(location.hash!=='#'+next)history.pushState(null,'','#'+next);render();}
 window.addEventListener('popstate',()=>{if(!data)return;view=getViewFromUrl();render();});
@@ -33,7 +33,7 @@ function sidebarIcon(id){
 }
 function nav(){
  const menus=data.role==='admin'
- ?[['dashboard','Dashboard'],['shops','Seller & Shop Management'],['settings','Platform Settings'],['plans','Subscription Plans'],['payments','Payments']]
+ ?[['dashboard','Dashboard'],['shops','Seller & Shop Management'],['plans','Subscription Plans'],['payments','Payments']]
  :[['dashboard','Dashboard'],['profile','Shop Profile'],['categories','Product Categories'],['products','Products'],['catalogues','Catalogues'],['enquiries','Enquiry Inbox'],['analytics','Analytics'],['status','WhatsApp Status'],['public','Public Showroom'],['subscription','Subscription']];
  $('sideNav').innerHTML=menus.map(([id,label])=>'<button class="side-link '+(view===id?'active':'')+'" data-nav="'+id+'" '+(view===id?'aria-current="page"':'')+'>'+sidebarIcon(id)+'<span>'+label+'</span></button>').join('');
  document.querySelectorAll('[data-nav]').forEach(n=>n.onclick=()=>navigateTo(n.dataset.nav));
@@ -499,7 +499,7 @@ function statusPanel(){
  '<div id="statusOutput" class="status-results"></div>');
 }
 function adminDashboard(){
- const s=data.stats;return '<div class="stats">'+stat('Registered Sellers',s.sellers,'blue')+stat('Shops',s.shops,'green')+stat('Products',s.products,'amber')+stat('Free Product Limit',s.free_product_limit,'purple','Products per shop')+'</div><div class="columns"><div>'+adminShops()+'</div><div>'+panel('Platform Settings','<p>Free Product Limit: <b>'+s.free_product_limit+'</b></p>'+button('Manage Plans','nav-plans','primary'))+panel('Subscriptions','<p class="muted">Paid subscriptions and Razorpay are planned for the next development phase.</p>')+'</div></div>';
+ const s=data.stats;return '<div class="stats">'+stat('Registered Sellers',s.sellers,'blue')+stat('Shops',s.shops,'green')+stat('Products',s.products,'amber')+stat('Free Product Limit',s.free_product_limit,'purple','Products per shop')+'</div><div class="columns"><div>'+adminShops()+'</div><div>'+panel('Subscriptions','<p class="muted">Paid subscriptions and Razorpay are planned for the next development phase.</p>')+'</div></div>';
 }
 function adminShops(){
  const rows=data.shops.map(s=>'<tr><td>'+esc(s.owner)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.products)+'</td><td><span class="pill '+(!+s.active?'off':'')+'">'+(+s.active?'Active':'Disabled')+'</span></td><td>'+button(+s.active?'Disable':'Enable','status-'+s.id+'-'+(+s.active?0:1),'outline')+' <a target="_blank" class="btn sm soft" href="/'+encodeURIComponent(s.slug)+'">View</a></td></tr>').join('');
@@ -619,14 +619,12 @@ async function loadSellerSubscription(){
  catch(e){sellerSubscriptionError=e.message||'Could not load plans';sellerSubscriptionData=null;}
  finally{sellerSubscriptionLoading=false;if(view==='subscription'&&data?.role==='seller')render();}
 }
-function adminSettings(){return panel('Platform Settings','<p>Free Product Limit: <strong>'+Number(data.stats.free_product_limit)+'</strong></p><p class="hint">Manage limits and subscription features in Subscription Plans.</p>'+button('Manage Plans','nav-plans','primary'));}
 function render(){
  nav();
  let html='',name='Dashboard';
  if(data.role==='admin'){
   if(view==='dashboard')html=adminDashboard();
   else if(view==='shops'){name='Seller & Shop Management';html=adminShops();}
-  else if(view==='settings'){name='Platform Settings';html=adminSettings();}
   else if(view==='plans'){name='Subscription Plans';html=adminPlans();if(!plansLoaded&&!plansLoading&&!plansError)queueMicrotask(loadPlans);}
   else{ name='Payments';html=panel('Razorpay Payments','<p class="muted">Razorpay has not yet been integrated. No payment records are collected.</p>');}
  }else{
@@ -780,7 +778,6 @@ function wireForms(){
   }
  };}
  {const f=$('catalogueForm');if(f)f.onsubmit=e=>{e.preventDefault();post('catalogue-save',{id:f.dataset.id?+f.dataset.id:0,name:$('catalogueName').value,product_ids:[...document.querySelectorAll('[name="catalogueProduct"]:checked')].map(x=>+x.value)});};}
- {const f=$('settingsForm');if(f)f.onsubmit=e=>{e.preventDefault();post('settings',{free_product_limit:Number($('freeLimit').value)});};}
  {const f=$('changePasswordForm');if(f)f.onsubmit=async e=>{
   e.preventDefault();
   const current=$('currentPassword').value,newPassword=$('newPassword').value,confirm=$('confirmPassword').value;
@@ -815,7 +812,6 @@ async function doAction(action){
  if(action==='copyLink'){try{await navigator.clipboard.writeText(shopUrl());flash('Shop link copied');}catch(e){flash('Copy unavailable in this browser',true)}return;}
  if(action==='retry-enquiries'){enquiryError='';enquiryLoaded=false;render();return;}
  if(action==='nav-status'){navigateTo('status');return;}
- if(action==='nav-settings'){navigateTo('settings');return;}
  if(action==='nav-plans'){navigateTo('plans');return;}
  if(action==='retry-plans'){plansError='';plansLoaded=false;render();return;}
  if(action==='retry-subscription'){sellerSubscriptionData=null;sellerSubscriptionError='';render();return;}
