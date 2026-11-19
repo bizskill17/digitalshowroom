@@ -247,3 +247,7 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
 .analytics-filter-bar input,.analytics-filter-bar select{width:100%;min-height:37px;padding:7px 9px;color:#0c2245;background:#fff;border:1px solid #c7d7ed;border-radius:8px;min-width:0}
 .analytics-filter-bar .analytics-clear{min-height:37px;padding:7px 14px}
 @media(max-width:650px){.analytics-filter-bar{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-filter-bar .analytics-clear{align-self:end}}
+
+/* Analytics uses only From Date, To Date, and Clear. */
+.analytics-filter-bar{grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) auto}
+@media(max-width:650px){.analytics-filter-bar{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-filter-bar .analytics-clear{grid-column:span 2;justify-self:start}}
