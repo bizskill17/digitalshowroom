@@ -21,34 +21,104 @@ function wrapTable(head,rows){return '<div class="table-wrap"><table class="data
 function shopUrl(){return location.origin+'/'+encodeURIComponent(data.shop.slug)}
 function field(label,id,value='',type='text',extra=''){return '<div class="field"><label for="'+id+'">'+esc(label)+'</label><input id="'+id+'" type="'+type+'" value="'+esc(value)+'" '+extra+'></div>'}
 let enquiryRecords=[],enquiryLoaded=false,enquiryLoading=false,enquiryError='';
+const enquiryFilters={search:'',from:'',to:'',type:'',status:''};
 function formatEnquiryDate(value){
  const match=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/);
  return match?match[3]+'/'+match[2]+'/'+match[1]+(match[4]?' '+match[4]:''):String(value||'');
 }
-function enquiryPanel(){
- if(enquiryError)return panel('Enquiry Inbox','<div class="notice error">'+esc(enquiryError)+'</div>'+button('Retry','retry-enquiries'));
- if(!enquiryLoaded)return panel('Enquiry Inbox','<p class="muted">Loading enquiries...</p>');
- if(!enquiryRecords.length)return panel('Enquiry Inbox','<p>No enquiries recorded yet.</p>');
- const rows=enquiryRecords.map(e=>{
-  const items=(e.items||[]).map(p=>{
-   const qty=Number(p.quantity);
-   const price=p.unit_price===null?'On request':'₹'+Number(p.unit_price).toFixed(2);
-   return '<div class="enquiry-item">'+esc(p.product_name)+' × '+qty+' '+esc(p.unit||'Piece')+' — '+price+'</div>';
-  }).join('');
+function enquiryDateKey(value){return String(value||'').slice(0,10);}
+function enquiryMatches(e){
+ const date=enquiryDateKey(e.created_at),filter=enquiryFilters;
+ if(filter.from&&date<filter.from)return false;
+ if(filter.to&&date>filter.to)return false;
+ if(filter.type&&e.kind!==filter.type)return false;
+ if(filter.status&&e.status!==filter.status)return false;
+ const q=filter.search.trim().toLocaleLowerCase();
+ if(!q)return true;
+ const searchable=[
+  'ENQ-'+String(e.id).padStart(5,'0'),e.customer_name,e.customer_mobile,
+  ...(e.items||[]).map(p=>p.product_name)
+ ].join(' ').toLocaleLowerCase();
+ return searchable.includes(q);
+}
+function enquiryTableRows(){
+ const filtered=enquiryRecords.filter(enquiryMatches);
+ $('enquiryResultCount').textContent=filtered.length+' of '+enquiryRecords.length+' enquiries';
+ const tbody=$('enquiryTableBody');
+ if(!tbody)return;
+ if(!filtered.length){tbody.innerHTML='<tr><td colspan="7" class="placeholder">No matching enquiries.</td></tr>';return;}
+ tbody.innerHTML=filtered.map(e=>{
   const ref='ENQ-'+String(e.id).padStart(5,'0');
-  const type=e.kind==='quotation'?'Quotation':'Order';
-  const customerName=String(e.customer_name||'').trim();
-  const digits=String(e.customer_mobile||'').replace(/[^0-9]/g,'');
-  const whatsappNumber=digits.length===10?'91'+digits:digits;
-  const contact='<div class="enquiry-customer">'+(customerName?'<b>'+esc(customerName)+'</b>':'')+
-   (digits?'<a href="https://wa.me/'+encodeURIComponent(whatsappNumber)+'" target="_blank" rel="noopener">'+esc(digits)+'</a>':'<span>Contact not provided</span>')+'</div>';
-  const details='<details><summary>View '+(e.items||[]).length+' item(s)</summary><div class="enquiry-items">'+items+'</div></details>';
+  const customer=String(e.customer_name||'').trim(),mobile=String(e.customer_mobile||'').replace(/[^0-9]/g,'');
+  const wa=mobile.length===10?'91'+mobile:mobile;
+  const contact='<div class="enquiry-customer">'+(customer?'<b>'+esc(customer)+'</b>':'')+
+   (mobile?'<a href="https://wa.me/'+encodeURIComponent(wa)+'" target="_blank" rel="noopener noreferrer">'+esc(mobile)+'</a>':'<span>Contact not provided</span>')+'</div>';
+  const n=(e.items||[]).length;
+  const details='<button type="button" class="enquiry-detail-link" data-enquiry-view="'+Number(e.id)+'">View '+n+' item'+(n===1?'':'s')+'</button>';
   const options=['New','Follow-up','Completed'].map(v=>'<option value="'+esc(v)+'" '+(e.status===v?'selected':'')+'>'+esc(v)+'</option>').join('');
-  const status='<select class="enquiry-status" data-enquiry-status="'+Number(e.id)+'" aria-label="Status of '+ref+'">'+options+'</select>';
   const total=e.estimated_total===null?'On request':'₹'+Number(e.estimated_total).toFixed(2);
-  return '<tr><td>'+ref+'</td><td>'+esc(formatEnquiryDate(e.created_at))+'</td><td>'+type+'</td><td>'+details+'</td><td>'+total+'</td><td>'+contact+'</td><td>'+status+'</td></tr>';
+  return '<tr><td class="enquiry-ref">'+ref+'</td><td class="enquiry-date">'+esc(formatEnquiryDate(e.created_at))+'</td><td>'+(e.kind==='quotation'?'Quotation':'Order')+'</td><td>'+details+'</td><td class="enquiry-amount">'+total+'</td><td>'+contact+'</td><td><select class="enquiry-status" data-enquiry-status="'+Number(e.id)+'" aria-label="Status of '+ref+'">'+options+'</select></td></tr>';
  }).join('');
- return panel('Enquiry Inbox','<p class="muted enquiry-note">These are WhatsApp enquiries initiated by customers. WhatsApp message delivery is not confirmed.</p>'+wrapTable(['Reference','Date','Type','Products','Amount','Customer','Status'],rows));
+ tbody.querySelectorAll('[data-enquiry-view]').forEach(button=>button.onclick=()=>showEnquiryDetails(Number(button.dataset.enquiryView)));
+ tbody.querySelectorAll('[data-enquiry-status]').forEach(select=>select.onchange=()=>updateEnquiryStatus(select));
+}
+function showEnquiryDetails(id){
+ const e=enquiryRecords.find(item=>Number(item.id)===id);
+ const dialog=$('enquiryDetailsDialog');if(!e||!dialog)return;
+ const ref='ENQ-'+String(e.id).padStart(5,'0');
+ $('enquiryDetailsTitle').textContent=ref+' — '+(e.kind==='quotation'?'Quotation':'Order');
+ $('enquiryDetailsMeta').textContent=formatEnquiryDate(e.created_at)+' | '+(e.customer_name||'Customer not provided')+(e.customer_mobile?' | '+e.customer_mobile:'');
+ const table=$('enquiryDetailsItems');table.replaceChildren();
+ let calculated=0,hasUnknown=false;
+ for(const p of e.items||[]){
+  const tr=document.createElement('tr');
+  const price=p.unit_price===null?null:Number(p.unit_price);
+  const qty=Number(p.quantity);
+  const cells=[p.product_name,qty+' '+(p.unit||'Piece'),price===null?'On request':'₹'+price.toFixed(2),price===null?'On request':'₹'+(price*qty).toFixed(2)];
+  if(price===null)hasUnknown=true;else calculated+=price*qty;
+  for(const value of cells){const td=document.createElement('td');td.textContent=String(value);tr.append(td);}
+  table.append(tr);
+ }
+ $('enquiryDetailsTotal').textContent='Estimated total: '+(e.estimated_total===null||hasUnknown?'On request':'₹'+Number(e.estimated_total).toFixed(2));
+ if(typeof dialog.showModal==='function')dialog.showModal();
+ else dialog.setAttribute('open','');
+}
+function enquiryPanel(){
+ if(enquiryError)return '<section class="panel"><div class="notice error">'+esc(enquiryError)+'</div>'+button('Retry','retry-enquiries')+'</section>';
+ if(!enquiryLoaded)return '<section class="panel"><p class="muted">Loading enquiries...</p></section>';
+ const controls='<div class="enquiry-filter-bar">'+
+  '<div class="field"><label for="enquirySearch">Search</label><input id="enquirySearch" type="search" placeholder="Reference, customer or product" value="'+esc(enquiryFilters.search)+'"></div>'+
+  '<div class="field"><label for="enquiryFrom">From Date</label><input id="enquiryFrom" type="date" value="'+esc(enquiryFilters.from)+'"></div>'+
+  '<div class="field"><label for="enquiryTo">To Date</label><input id="enquiryTo" type="date" value="'+esc(enquiryFilters.to)+'"></div>'+
+  '<div class="field"><label for="enquiryType">Type</label><select id="enquiryType"><option value="">All Types</option><option value="order" '+(enquiryFilters.type==='order'?'selected':'')+'>Order</option><option value="quotation" '+(enquiryFilters.type==='quotation'?'selected':'')+'>Quotation</option></select></div>'+
+  '<div class="field"><label for="enquiryStatusFilter">Status</label><select id="enquiryStatusFilter"><option value="">All Statuses</option>'+['New','Follow-up','Completed'].map(v=>'<option value="'+v+'" '+(enquiryFilters.status===v?'selected':'')+'>'+v+'</option>').join('')+'</select></div>'+
+  '<button type="button" class="btn soft enquiry-clear" id="enquiryClearFilters">Clear</button>'+
+ '</div>';
+ const table='<div class="enquiry-table-summary"><span id="enquiryResultCount"></span></div><div class="table-wrap"><table class="data-table enquiry-table"><thead><tr><th>Reference</th><th>Date</th><th>Type</th><th>Products</th><th>Amount</th><th>Customer</th><th>Status</th></tr></thead><tbody id="enquiryTableBody"></tbody></table></div>';
+ const dialog='<dialog class="enquiry-details-dialog" id="enquiryDetailsDialog" aria-labelledby="enquiryDetailsTitle"><div class="enquiry-details-head"><h3 id="enquiryDetailsTitle"></h3><button type="button" class="enquiry-close" id="enquiryDetailsClose" aria-label="Close">×</button></div><p id="enquiryDetailsMeta" class="muted"></p><div class="table-wrap"><table class="data-table"><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody id="enquiryDetailsItems"></tbody></table></div><div class="enquiry-details-bottom"><strong id="enquiryDetailsTotal"></strong><button type="button" class="btn soft" id="enquiryDetailsDone">Close</button></div></dialog>';
+ return '<section class="panel enquiry-inbox-panel">'+controls+table+dialog+'</section>';
+}
+function wireEnquiryFilters(){
+ const pairs=[['enquirySearch','search'],['enquiryFrom','from'],['enquiryTo','to'],['enquiryType','type'],['enquiryStatusFilter','status']];
+ for(const [id,key] of pairs){
+  const el=$(id);if(!el)continue;
+  el.addEventListener(key==='search'?'input':'change',()=>{
+   enquiryFilters[key]=el.value;enquiryTableRows();
+  });
+ }
+ const clear=$('enquiryClearFilters');
+ if(clear)clear.onclick=()=>{
+  for(const key of Object.keys(enquiryFilters))enquiryFilters[key]='';
+  for(const [id,key] of pairs)if($(id))$(id).value=enquiryFilters[key];
+  enquiryTableRows();
+ };
+ const dialog=$('enquiryDetailsDialog');
+ if(dialog){
+  const close=()=>{if(typeof dialog.close==='function')dialog.close();else dialog.removeAttribute('open');};
+  $('enquiryDetailsClose').onclick=close;
+  $('enquiryDetailsDone').onclick=close;
+ }
+ enquiryTableRows();
 }
 async function loadEnquiries(){
  if(enquiryLoading)return;
@@ -430,6 +500,7 @@ async function uploadProductPhotos(input){
  }finally{input.value='';input.disabled=false;if(save)save.disabled=false;}
 }
 function wireForms(){
+ if(view==='enquiries')wireEnquiryFilters();
  document.querySelectorAll('[data-enquiry-status]').forEach(select=>select.onchange=()=>updateEnquiryStatus(select));
 
  const galleryFiles=$('galleryBulkFile');
