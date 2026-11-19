@@ -610,7 +610,7 @@ function sellerSubscriptionPanel(){
  }).join('');
  return '<section class="panel subscription-panel seller-subscription-panel"><h2>My Subscription</h2>'+usage+
  '<h2 class="seller-plan-title">Available Plans</h2><div class="seller-plan-grid">'+plans+'</div>'+
- '<p class="subscription-footnote">Paid upgrades and online payments are not yet available. Your current Free plan remains unchanged.</p></section>';
+ '</section>';
 }
 async function loadSellerSubscription(){
  if(sellerSubscriptionLoading)return;
