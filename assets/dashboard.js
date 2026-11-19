@@ -17,6 +17,7 @@ function title(t){$('pageTitle').textContent=t;}
 function stat(name,value,klass='blue',hint=''){return '<div class="stat '+klass+'"><span>'+esc(name)+'</span><b>'+esc(value)+'</b><small>'+esc(hint)+'</small></div>'}
 function tdActions(edit,del){return '<div class="inline-actions">'+button('Edit',edit)+button('Delete',del,'danger')+'</div>'}
 function panel(heading,inside,extra=''){return '<section class="panel"><div class="panel-head"><h2>'+heading+'</h2>'+extra+'</div>'+inside+'</section>'}
+function sellerPanel(inside,extra=''){return '<section class="panel seller-panel">'+(extra?'<div class="seller-panel-actions">'+extra+'</div>':'')+inside+'</section>'}
 function wrapTable(head,rows){return '<div class="table-wrap"><table class="data-table"><thead><tr>'+head.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="'+head.length+'" class="placeholder">No records yet</td></tr>')+'</tbody></table></div>'}
 function shopUrl(){return location.origin+'/'+encodeURIComponent(data.shop.slug)}
 function field(label,id,value='',type='text',extra=''){return '<div class="field"><label for="'+id+'">'+esc(label)+'</label><input id="'+id+'" type="'+type+'" value="'+esc(value)+'" '+extra+'></div>'}
@@ -146,16 +147,18 @@ function sellerDashboard(){
  +'</div></div>';
 }
 function productsPanel(short=false){
- const rows=data.products.slice(0,short?8:999).map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+esc(data.categories.find(c=>c.id==p.category_id)?.name||'—')+'</td><td>'+(p.price===null?'On request':'₹'+Number(p.price).toFixed(2))+'</td><td>'+esc(p.unit||'Piece')+'</td><td>'+esc(p.display_order??0)+'</td><td><span class="pill '+(!+p.active?'off':'')+'">'+(+p.active?'Active':'Hidden')+'</span></td><td class="actions">'+tdActions('edit-product-'+p.id,'delete-product-'+p.id)+'</td></tr>').join('');
- return panel('Products',wrapTable(['Product','Category','Price','Unit','Order','Status','Actions'],rows),'<div class="inline-actions">'+button('Import Products','import-products')+button('From Gallery','gallery-products')+button('＋ Add Product','new-product','primary')+'</div>');
+ const rows=data.products.slice(0,short?8:999).map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+esc(data.categories.find(c=>c.id==p.category_id)?.name||'—')+'</td><td>'+(p.price===null?'On request':'₹'+Number(p.price).toFixed(2))+'</td><td>'+esc(p.unit||'Piece')+'</td><td>'+esc(p.display_order??0)+'</td><td class="actions">'+tdActions('edit-product-'+p.id,'delete-product-'+p.id)+'</td></tr>').join('');
+ const actions='<div class="inline-actions">'+button('Import Products','import-products')+button('From Gallery','gallery-products')+button('＋ Add Product','new-product','primary')+'</div>';
+ const table=wrapTable(['Product','Category','Price','Unit','Order','Actions'],rows);
+ return short?panel('Products',table,button('＋ Add Product','new-product','primary')):sellerPanel(table,actions);
 }
 function categoryPanel(){
  const rows=data.categories.map(c=>'<tr><td>'+esc(c.name)+'</td><td>'+data.products.filter(p=>p.category_id==c.id).length+'</td><td>'+tdActions('edit-category-'+c.id,'delete-category-'+c.id)+'</td></tr>').join('');
- return panel('Product Categories',wrapTable(['Category','Products','Actions'],rows),button('＋ Add Category','new-category','primary'));
+ return sellerPanel(wrapTable(['Category','Products','Actions'],rows),button('＋ Add Category','new-category','primary'));
 }
 function profilePanel(){
  const s=data.shop;
- return panel('Shop Profile','<form id="shopForm"><div class="form-grid">'+field('Your Name *','accountName',user?.name||'','text','required maxlength="150"')+field('Shop Name *','shopName',s.name,'text','required maxlength="150"')+field('WhatsApp Number *','shopPhone',s.phone,'tel','required maxlength="15"')+field('Tagline','shopTag',s.tagline,'text','maxlength="255"')+field('Shop Address','shopAddress',s.address,'text','maxlength="255"')+'</div><div class="field"><label for="shopThemeColor">Shop Colour</label><select id="shopThemeColor">'+[['#E83F7E','Pink'],['#1D4ED8','Blue'],['#0F766E','Teal'],['#6D28D9','Purple'],['#9A3412','Terracotta'],['#334155','Slate']].map(([value,label])=>'<option value="'+value+'" '+((s.theme_color||'#E83F7E').toUpperCase()===value?'selected':'')+'>'+label+'</option>').join('')+'</select></div>'+'<input type="hidden" id="shopLogo" value="'+esc(s.logo_url||'')+'"><div class="field"><label for="shopLogoFile">Upload Shop Logo (JPG, PNG, WebP)</label><input type="file" id="shopLogoFile" accept="image/jpeg,image/png,image/webp"></div><button class="btn primary" type="submit">Save Profile</button></form>');
+ return sellerPanel('<form id="shopForm"><div class="form-grid">'+field('Your Name *','accountName',user?.name||'','text','required maxlength="150"')+field('Shop Name *','shopName',s.name,'text','required maxlength="150"')+field('WhatsApp Number *','shopPhone',s.phone,'tel','required maxlength="15"')+field('Tagline','shopTag',s.tagline,'text','maxlength="255"')+field('Shop Address','shopAddress',s.address,'text','maxlength="255"')+'<div class="field"><label for="shopThemeColor">Shop Colour</label><select id="shopThemeColor">'+[['#E83F7E','Pink'],['#1D4ED8','Blue'],['#0F766E','Teal'],['#6D28D9','Purple'],['#9A3412','Terracotta'],['#334155','Slate']].map(([value,label])=>'<option value="'+value+'" '+((s.theme_color||'#E83F7E').toUpperCase()===value?'selected':'')+'>'+label+'</option>').join('')+'</select></div></div>'+'<input type="hidden" id="shopLogo" value="'+esc(s.logo_url||'')+'"><div class="field"><label for="shopLogoFile">Upload Shop Logo (JPG, PNG, WebP)</label><input type="file" id="shopLogoFile" accept="image/jpeg,image/png,image/webp"></div><button class="btn primary" type="submit">Save Profile</button></form>');
 }
 
 const productImportColumns=['Product Name','Category','Price','Unit','Description','Display Order','Visible'];
@@ -372,14 +375,14 @@ function categoryForm(id){
 }
 function cataloguesPanel(){
  const rows=data.catalogues.map(c=>'<tr><td>'+esc(c.name)+'</td><td>'+data.catalogue_products.filter(i=>i.catalogue_id==c.id).length+'</td><td>'+tdActions('edit-catalogue-'+c.id,'delete-catalogue-'+c.id)+'</td></tr>').join('');
- return panel('Catalogues',wrapTable(['Catalogue','Products','Actions'],rows),button('＋ Add Catalogue','new-catalogue','primary'));
+ return sellerPanel(wrapTable(['Catalogue','Products','Actions'],rows),button('＋ Add Catalogue','new-catalogue','primary'));
 }
 function catalogueForm(id){
  const c=data.catalogues.find(v=>v.id==id)||{name:''};const chosen=data.catalogue_products.filter(v=>v.catalogue_id==id).map(v=>+v.product_id);
  return panel(id?'Edit Catalogue':'Add Catalogue','<form id="catalogueForm" data-id="'+(id||'')+'">'+field('Catalogue Name *','catalogueName',c.name,'text','required maxlength="130"')+'<div class="field"><label>Select Products</label><div class="panel" style="max-height:320px;overflow:auto">'+(data.products.map(p=>'<label style="display:block;margin-bottom:10px"><input type="checkbox" name="catalogueProduct" value="'+p.id+'" '+(chosen.includes(+p.id)?'checked':'')+'> '+esc(p.name)+'</label>').join('')||'Add products first')+'</div></div><button class="btn primary" type="submit">Save Catalogue</button> '+button('Cancel','cancel')+'</form>');
 }
 function statusPanel(){
- return panel('WhatsApp Status Image Maker','<div class="form-grid">'+data.products.filter(p=>+p.active).map(p=>'<label class="feature"><input type="checkbox" class="statusPick" value="'+p.id+'"> '+esc(p.name)+'</label>').join('')+'</div><p style="margin-top:18px">'+button('Generate Selected Images','generate-status','primary')+'</p><div id="statusOutput"></div>');
+ return sellerPanel('<div class="form-grid">'+data.products.filter(p=>+p.active).map(p=>'<label class="feature"><input type="checkbox" class="statusPick" value="'+p.id+'"> '+esc(p.name)+'</label>').join('')+'</div><p style="margin-top:18px">'+button('Generate Selected Images','generate-status','primary')+'</p><div id="statusOutput"></div>');
 }
 function adminDashboard(){
  const s=data.stats;return '<div class="stats">'+stat('Registered Sellers',s.sellers,'blue')+stat('Shops',s.shops,'green')+stat('Products',s.products,'amber')+stat('Free Product Limit',s.free_product_limit,'purple','Products per shop')+'</div><div class="columns"><div>'+adminShops()+'</div><div>'+panel('Platform Settings','<p>Free Product Limit: <b>'+s.free_product_limit+'</b></p>'+button('Change Limit','nav-settings','primary'))+panel('Subscriptions','<p class="muted">Paid subscriptions and Razorpay are planned for the next development phase.</p>')+'</div></div>';
