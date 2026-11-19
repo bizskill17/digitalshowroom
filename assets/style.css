@@ -412,3 +412,13 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
 .seller-subscription-panel .subscription-footnote{margin-top:17px}
 @media(max-width:850px){.seller-subscription-panel .subscription-overview{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.seller-subscription-panel .subscription-overview,.seller-plan-grid{grid-template-columns:1fr}.seller-plan-card{padding:14px}}
+
+/* Subscription Plan Add/Edit popup — compact and independently scrollable. */
+.plan-editor-dialog{position:fixed;inset:0;margin:auto;width:min(720px,calc(100vw - 28px));max-width:720px;max-height:min(85dvh,850px);overflow-y:auto;padding:22px 24px;background:#fff;border:1px solid #dce6f2;border-radius:16px;box-shadow:0 20px 65px #0b244b40;color:#142b48}
+.plan-editor-dialog::backdrop{background:rgba(9,27,52,.48)}
+.plan-editor-dialog .panel-head{position:sticky;top:-22px;background:white;z-index:2;padding:4px 0 13px;border-bottom:1px solid #e5ebf3}
+.plan-editor-dialog .panel-head h2{font-size:19px;margin:0}
+.plan-editor-dialog .form-grid{margin-top:16px}
+.plan-editor-dialog .plan-editor-actions{position:sticky;bottom:-22px;background:white;border-top:1px solid #e5ebf3;padding:13px 0 4px;margin-top:15px}
+.plan-master-panel #planEditorArea:not(:empty){margin:0;padding:0;border:0}
+@media(max-width:620px){.plan-editor-dialog{padding:15px;max-height:90dvh}.plan-editor-dialog .panel-head{top:-15px}.plan-editor-dialog .plan-editor-actions{bottom:-15px}}
