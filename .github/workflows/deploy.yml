@@ -27,6 +27,7 @@ jobs:
           php -l api/db.php
           php -l api/health.php
           node --check assets/login.js
+          node --check assets/admin-login.js
           node --check assets/dashboard.js
           node --check assets/shop.js
 
