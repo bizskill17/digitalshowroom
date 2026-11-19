@@ -70,12 +70,12 @@
   ctx.textAlign='center';
   txt(ctx,state.shop.name,500,260,850,'bold 66px Arial','#FFFFFF');
   if(state.shop.tagline)txt(ctx,state.shop.tagline,500,350,810,'30px Arial','#FFFFFF');
-  drawQr(ctx,qr,150,550,700);
-  ctx.fillStyle='#152E4B';ctx.font='bold 54px Arial';ctx.fillText('Scan to Explore Our Shop',500,1410);
-  ctx.fillStyle='#48627D';ctx.font='32px Arial';ctx.fillText('View products and enquire on WhatsApp',500,1490);
-  ctx.fillStyle=accent();ctx.font='bold 35px Arial';ctx.fillText(state.shop.phone||'',500,1600);
-  ctx.fillStyle='#294661';ctx.font='24px Arial';ctx.fillText(state.url,500,h-140);
-  if(state.shop.address)txt(ctx,state.shop.address,500,h-80,850,'24px Arial','#294661');
+  drawQr(ctx,qr,180,423,640);
+  ctx.fillStyle='#152E4B';ctx.font='bold 54px Arial';ctx.fillText('Scan to Explore Our Shop',500,1125);
+  ctx.fillStyle='#48627D';ctx.font='32px Arial';ctx.fillText('View products and enquire on WhatsApp',500,1200);
+  ctx.fillStyle=accent();ctx.font='bold 35px Arial';ctx.fillText(state.shop.phone||'',500,1270);
+  ctx.fillStyle='#294661';ctx.font='24px Arial';ctx.fillText(state.url,500,h-85);
+  if(state.shop.address)txt(ctx,state.shop.address,500,h-37,850,'24px Arial','#294661');
   return c;
  }
  async function cardCanvas(width,height,qr){
