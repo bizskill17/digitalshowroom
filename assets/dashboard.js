@@ -480,7 +480,7 @@ function render(){
   if(view==='categories'){name='Product Categories';html=categoryPanel();}
   if(view==='catalogues'){name='Catalogues';html=cataloguesPanel();}
   if(view==='enquiries'){name='Enquiry Inbox';html=enquiryPanel();if(!enquiryLoaded&&!enquiryLoading&&!enquiryError)queueMicrotask(loadEnquiries);}
-  if(view==='analytics'){name='Analytics';html=analyticsPanel();if(!analyticsResult&&!analyticsLoading&&!analyticsError&&analyticsMode!=='custom')queueMicrotask(fetchAnalytics);}
+  if(view==='analytics'){name='Analytics';html=analyticsPanel();if(!analyticsResult&&!analyticsLoading&&!analyticsError)queueMicrotask(fetchAnalytics);}
   if(view==='status'){name='WhatsApp Status';html=statusPanel();}
   if(view==='public'){name='Public Showroom';html=panel('Share Your Shop','<div class="preview-link">'+esc(shopUrl())+'</div><p>'+button('Copy Link','copyLink')+' <a class="btn sm primary" href="'+esc(shopUrl())+'" target="_blank">Open Showroom ↗</a></p>');}
   if(view==='subscription'){
