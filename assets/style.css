@@ -251,3 +251,49 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
 /* Analytics uses only From Date, To Date, and Clear. */
 .analytics-filter-bar{grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) auto}
 @media(max-width:650px){.analytics-filter-bar{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-filter-bar .analytics-clear{grid-column:span 2;justify-self:start}}
+
+/* Phase 2: showroom themes in the existing Shop Profile. */
+.theme-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.theme-option{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid #d6e3f3;border-radius:12px;cursor:pointer;background:white;min-width:0}
+.theme-option.selected{border-color:#0862df;box-shadow:0 0 0 1px #0862df;background:#f7fbff}
+.theme-option input{position:absolute;opacity:0;width:1px;height:1px}
+.theme-option:focus-within{outline:2px solid #86baff;outline-offset:2px}
+.theme-option-name{font-weight:700;font-size:13px;color:#0b284e}
+.theme-option-mini{height:58px;border-radius:8px;background:#f7f8fd;display:flex;flex-direction:column;gap:5px;padding:8px;border:1px solid #e4ebf5}
+.theme-option-mini i{height:13px;width:100%;background:#e83f7e;display:block}
+.theme-option-mini b{height:19px;width:58%;background:#dfe7f3;display:block}
+.theme-option-mini em{height:7px;width:80%;background:#c7d3e5;display:block}
+.theme-mini-modern{background:#f3f6ff;border-radius:14px}
+.theme-mini-modern i{border-radius:7px;background:#667dd6}
+.theme-mini-modern b{border-radius:7px;width:75%}
+.theme-mini-minimal{background:#fff;border-radius:0}
+.theme-mini-minimal i{height:2px;background:#334155}
+.theme-mini-minimal b{width:48%;height:10px;background:#e9edf1}
+.theme-preview{--preview-accent:#e83f7e;border:1px solid #dbe5f2;border-radius:13px;overflow:hidden;margin:0 0 16px;background:#fff7fa}
+.theme-preview-head{background:var(--preview-accent);color:white;padding:15px 18px;display:flex;gap:5px;flex-direction:column}
+.theme-preview-head strong{font-size:19px}
+.theme-preview-head small{opacity:.9}
+.theme-preview-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:16px}
+.theme-preview-item{background:white;border:1px solid #e5e8f2;border-radius:9px;padding:10px;display:grid;gap:5px;font-size:12px}
+.theme-preview-item .theme-preview-photo{height:45px;border-radius:5px;background:color-mix(in srgb,var(--preview-accent) 13%,white)}
+.theme-preview-item span{color:var(--preview-accent);font-weight:700}
+.theme-preview[data-theme=modern]{border-radius:20px;background:color-mix(in srgb,var(--preview-accent) 6%,white)}
+.theme-preview[data-theme=modern] .theme-preview-head{margin:12px;border-radius:16px}
+.theme-preview[data-theme=modern] .theme-preview-item{border-radius:15px;box-shadow:0 5px 16px #0c224510}
+.theme-preview[data-theme=minimal]{background:white;border-radius:3px}
+.theme-preview[data-theme=minimal] .theme-preview-head{background:white;color:#192c41;border-bottom:2px solid var(--preview-accent)}
+.theme-preview[data-theme=minimal] .theme-preview-item{border-radius:2px;border-color:#e4e6e9;box-shadow:none}
+.theme-preview[data-theme=minimal] .theme-preview-item .theme-preview-photo{border-radius:2px;background:#f3f4f6}
+/* Classic intentionally retains the previous public showroom appearance. */
+.shop-view[data-shop-theme=modern]{background:color-mix(in srgb,var(--shop-accent) 5%,#f8faff)}
+.shop-view[data-shop-theme=modern] .shop-header{margin:18px auto 0;width:min(94%,1360px);border-radius:22px;padding:36px 4%;box-shadow:0 12px 30px #1e31551b}
+.shop-view[data-shop-theme=modern] .product-card{border-radius:19px;box-shadow:0 9px 24px #1e315514;overflow:hidden}
+.shop-view[data-shop-theme=modern] .shop-filter button{border-radius:12px}
+.shop-view[data-shop-theme=modern] .shop-cart{border-radius:18px 18px 0 0}
+.shop-view[data-shop-theme=minimal]{background:#fff}
+.shop-view[data-shop-theme=minimal] .shop-header{background:#fff;color:#142538;border-bottom:2px solid var(--shop-accent);padding:27px 5%}
+.shop-view[data-shop-theme=minimal] .product-card{border-radius:3px;box-shadow:none;border-color:#e0e5eb}
+.shop-view[data-shop-theme=minimal] .shop-filter button{border-radius:4px;border-color:#c9d1d9}
+.shop-view[data-shop-theme=minimal] .shop-filter button.active{background:var(--shop-accent);border-color:var(--shop-accent)}
+.shop-view[data-shop-theme=minimal] .shop-cart{border-top:1px solid #dfe5ec;box-shadow:none}
+@media(max-width:650px){.theme-options{gap:7px}.theme-option{padding:8px}.theme-option-mini{height:46px;padding:6px}.shop-view[data-shop-theme=modern] .shop-header{width:calc(100% - 20px);margin:10px auto 0;border-radius:16px;padding:22px 5%}}
