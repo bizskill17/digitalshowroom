@@ -513,7 +513,7 @@ function adminPlans(){
  if(!plansLoaded)return panel('Subscription Plans','<p class="muted">Loading plans...</p>');
  const rows=planRecords.map(p=>{
   const monthly=Number(p.monthly_price).toFixed(2),annual=Number(p.annual_price).toFixed(2);
-  return '<tr><td><strong>'+esc(p.name)+'</strong><small class="plan-code">'+esc(p.code)+'</small></td>'+
+  return '<tr><td><strong>'+esc(p.name)+'</strong></td>'+
   '<td>₹'+monthly+'</td><td>₹'+annual+'</td><td>'+esc(planText(p.product_limit))+'</td>'+
   '<td>'+esc(planText(p.catalogue_limit))+'</td><td><span class="pill '+(!Number(p.active)?'off':'')+'">'+(Number(p.active)?'Active':'Inactive')+'</span></td>'+
   '<td><button class="btn sm soft" type="button" data-edit-plan="'+Number(p.id)+'">Edit</button></td></tr>';
