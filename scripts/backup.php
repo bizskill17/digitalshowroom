@@ -51,7 +51,7 @@ try {
     $db = showroomDatabase();
     $tables = [
         'ds_users', 'ds_shops', 'ds_categories', 'ds_products',
-        'ds_catalogues', 'ds_catalogue_products', 'ds_settings', 'ds_product_images', 'ds_enquiries', 'ds_enquiry_items'
+        'ds_catalogues', 'ds_catalogue_products', 'ds_settings', 'ds_product_images', 'ds_enquiries', 'ds_enquiry_items', 'ds_analytics_events'
     ];
     // DDL before transaction: no schema migration should run during a backup.
     $ddl = [];
