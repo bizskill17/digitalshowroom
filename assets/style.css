@@ -20,3 +20,8 @@
 .sidebar-logout{background:white;border:1px solid #d7e0e2;border-radius:9px;text-align:center;color:#d32b2b;font-size:13px;min-height:41px}
 .sidebar-logout:hover{background:#fff0f0;color:#b51e1e}
 @media(max-width:800px){.sidebar-account{margin-top:12px;display:block}.account-card{max-width:300px}.sidebar-logout{width:100%}}
+
+/* Keep the Digital Showroom sidebar brand on a single line */
+.sidebar .brand{font-size:17px;letter-spacing:-.6px;gap:8px;white-space:nowrap;margin-left:5px;margin-right:0}
+.sidebar .brand .mark{width:34px;height:34px;flex:none;font-size:20px}
+@media(max-width:800px){.sidebar .brand{font-size:17px}}
