@@ -291,11 +291,11 @@ try{
    if(isset($seen[$key]))respond(['error'=>'Duplicate name in selected photos: '.$name],422);
    $seen[$key]=true;
    $url=trim((string)($row['image_url']??''));
-   if(!preg_match('~^/uploads/'.preg_quote((string)$sid,'~').'/[a-f0-9]{32}\\.(?:jpg|png|webp)$~',$url))
+   if(!preg_match('~^/uploads/'.preg_quote((string)$sid,'~').'/[a-f0-9]{32}\.(?:jpg|png|webp)$~',$url))
     respond(['error'=>'Invalid photo for product '.$line],422);
    $price=trim((string)($row['price']??''));
    if($price===''||mb_strtolower($price)==='on request')$price=null;
-   elseif(!preg_match('/^(?:0|[1-9][0-9]{0,9})(?:\\.[0-9]{1,2})?$/',$price)||(float)$price>9999999999)
+   elseif(!preg_match('/^(?:0|[1-9][0-9]{0,9})(?:\.[0-9]{1,2})?$/',$price)||(float)$price>9999999999)
     respond(['error'=>'Invalid price for product '.$line],422);
    else $price=number_format((float)$price,2,'.','');
    $cat=(int)($row['category_id']??0);
