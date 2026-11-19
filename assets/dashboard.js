@@ -89,7 +89,27 @@ function wireForms(){
  uploader=$('productImageFile');if(uploader)uploader.onchange=()=>uploadImage(uploader,$('productImage'));
  let f=$('shopForm');if(f)f.onsubmit=e=>{e.preventDefault();post('shop',{name:$('shopName').value,phone:$('shopPhone').value,tagline:$('shopTag').value,address:$('shopAddress').value,logo_url:$('shopLogo').value});};
  f=$('productForm');if(f)f.onsubmit=e=>{e.preventDefault();post('product-save',{id:f.dataset.id?+f.dataset.id:0,name:$('productName').value,category_id:$('productCat').value,description:$('productDesc').value,price:$('productPrice').value,image_url:$('productImage').value,active:$('productActive').checked},'Product saved');};
- f=$('categoryForm');if(f)f.onsubmit=e=>{e.preventDefault();post('category-save',{id:f.dataset.id?+f.dataset.id:0,name:$('categoryName').value});};
+ f=$('categoryForm');if(f)f.onsubmit=async e=>{
+  e.preventDefault();
+  const name=$('categoryName').value.trim();
+  const id=f.dataset.id?+f.dataset.id:0;
+  let notice=$('categorySaveMessage');
+  if(!notice){notice=document.createElement('div');notice.id='categorySaveMessage';notice.setAttribute('role','alert');f.prepend(notice);}
+  if(!name){notice.className='notice error';notice.textContent='Enter category name.';return;}
+  const saveButton=f.querySelector('button[type="submit"]');
+  saveButton.disabled=true;saveButton.textContent='Saving...';
+  notice.className='notice';notice.textContent='Saving category...';
+  try{
+   const response=await api('category-save',{id,name});
+   if(!response.ok||!response.category?.id)throw Error('Server did not confirm category save.');
+   const updated=await api('dashboard');
+   if(!updated.categories?.some(c=>Number(c.id)===Number(response.category.id)))throw Error('Saved category not returned by database. Refresh and check before saving again.');
+   data=updated;render();flash('Category saved successfully: '+response.category.name);
+  }catch(error){
+   notice.className='notice error';notice.textContent=error.message;
+   saveButton.disabled=false;saveButton.textContent='Save Category';
+  }
+ };
  f=$('catalogueForm');if(f)f.onsubmit=e=>{e.preventDefault();post('catalogue-save',{id:f.dataset.id?+f.dataset.id:0,name:$('catalogueName').value,product_ids:[...document.querySelectorAll('[name="catalogueProduct"]:checked')].map(x=>+x.value)});};
  f=$('settingsForm');if(f)f.onsubmit=e=>{e.preventDefault();post('settings',{free_product_limit:Number($('freeLimit').value)});};
 }
