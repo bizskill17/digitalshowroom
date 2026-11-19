@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Initial Admin Setup | Digital Showroom</title><link rel="stylesheet" href="/assets/style.css">
+<style>.password-wrap{position:relative}.password-wrap input{padding-right:52px}.eye-button{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:#536b88;padding:8px;border-radius:7px}.eye-button:hover{background:#eaf3ff}.setup-box{margin:15px 0}</style>
+</head><body><main class="auth"><section class="auth-card">
+<a href="/" class="brand"><span class="mark">▣</span> Digital Showroom</a>
+<h1>Initial Admin Setup</h1>
+<p class="muted">Create your first administrator using the private setup token. This setup closes automatically when an Admin account exists.</p>
+<div id="setupStatus" class="notice setup-box" role="status">Checking setup availability…</div>
+<form id="setupForm" hidden>
+<div class="field"><label for="setupToken">One-Time Setup Token *</label><input id="setupToken" type="password" required autocomplete="off" minlength="32"></div>
+<div class="field"><label for="adminName">Admin Name *</label><input id="adminName" maxlength="150" required autocomplete="name"></div>
+<div class="field"><label for="adminEmail">Admin Email *</label><input id="adminEmail" type="email" maxlength="190" required autocomplete="email"></div>
+<div class="field"><label for="adminPassword">Admin Password *</label><div class="password-wrap"><input id="adminPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password" required><button id="togglePassword" class="eye-button" type="button" aria-label="Show password" aria-pressed="false">Show</button></div></div>
+<button class="btn primary wide" id="setupSubmit" type="submit">Create Administrator</button>
+</form>
+<div id="setupComplete" hidden><p class="notice success">Admin account created. The setup page is now disabled.</p><a class="btn primary wide" href="/admin-login.html">Go to Admin Login</a></div>
+<p class="hint" style="margin-top:20px"><a href="/admin-login.html">← Admin Login</a></p>
+</section></main><script src="/assets/admin-setup.js?v=1" defer></script></body></html>
