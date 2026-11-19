@@ -41,7 +41,7 @@ function profilePanel(){
 }
 function productForm(id){
  const p=data.products.find(v=>v.id==id)||{name:'',description:'',category_id:'',price:'',image_url:'',active:1};let cats='<option value="">No Category</option>'+data.categories.map(c=>'<option value="'+c.id+'" '+(c.id==p.category_id?'selected':'')+'>'+esc(c.name)+'</option>').join('');
- return panel(id?'Edit Product':'Add Product','<form id="productForm" data-id="'+(id||'')+'"><div class="form-grid">'+field('Product Name *','productName',p.name,'text','required maxlength="180"')+'<div class="field"><label for="productCat">Category</label><select id="productCat">'+cats+'</select></div>'+field('Price (₹) — blank means on request','productPrice',p.price===null?'':p.price,'text','inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" title="Enter a price with up to 2 decimal places"')+field('Unit','productUnit',p.unit||'Piece','text','required maxlength="30" list="productUnitOptions"')+field('Display Order','productOrder',p.display_order??0,'text','inputmode="numeric" pattern="[0-9]+" maxlength="6" required')+'</div><datalist id="productUnitOptions"><option value="Piece"><option value="Kg"><option value="Gram"><option value="Box"><option value="Pack"><option value="Set"><option value="Litre"></datalist><input type="hidden" id="productImage" value="'+esc(p.image_url||'')+'"><div class="field"><label for="productImageFile">Upload Product Photo (JPG, PNG, WebP)</label><input type="file" id="productImageFile" accept="image/jpeg,image/png,image/webp"></div><div class="field"><label for="productDesc">Description</label><textarea id="productDesc" maxlength="2500">'+esc(p.description)+'</textarea></div><div class="field"><label><input type="checkbox" id="productActive" '+(+p.active?'checked':'')+'> Visible in public showroom</label></div><button type="submit" class="btn primary">Save Product</button> '+button('Cancel','cancel')+'</form>');
+ return panel(id?'Edit Product':'Add Product','<form id="productForm" data-id="'+(id||'')+'"><div class="form-grid">'+field('Product Name *','productName',p.name,'text','required maxlength="180"')+'<div class="field"><label for="productCat">Category</label><select id="productCat">'+cats+'</select></div>'+field('Price (₹) — blank means on request','productPrice',p.price===null?'':p.price,'text','inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" title="Enter a price with up to 2 decimal places"')+field('Unit','productUnit',p.unit||'Piece','text','required maxlength="30" list="productUnitOptions"')+field('Display Order','productOrder',p.display_order??0,'text','inputmode="numeric" pattern="[0-9]+" maxlength="6" required')+'</div><datalist id="productUnitOptions"><option value="Piece"><option value="Kg"><option value="Gram"><option value="Box"><option value="Pack"><option value="Set"><option value="Litre"></datalist><input type="hidden" id="productImage" value="'+esc(p.image_url||'')+'"><div class="field"><label for="productImageFile">Product Photos (up to 6)</label><input type="file" id="productImageFile" accept="image/jpeg,image/png,image/webp" multiple><div id="productGalleryMessage" class="hint" role="status" aria-live="polite">Select several photos from your gallery. The first photo is the main photo.</div><div id="productGallery" class="product-gallery" aria-label="Selected product photos"></div></div><div class="field"><label for="productDesc">Description</label><textarea id="productDesc" maxlength="2500">'+esc(p.description)+'</textarea></div><div class="field"><label><input type="checkbox" id="productActive" '+(+p.active?'checked':'')+'> Visible in public showroom</label></div><button type="submit" class="btn primary">Save Product</button> '+button('Cancel','cancel')+'</form>');
 }
 function categoryForm(id){
  const c=data.categories.find(v=>v.id==id)||{name:''};return panel(id?'Edit Category':'Add Category','<form id="categoryForm" data-id="'+(id||'')+'">'+field('Category Name *','categoryName',c.name,'text','required maxlength="120"')+'<button type="submit" class="btn primary">Save Category</button> '+button('Cancel','cancel')+'</form>');
@@ -125,11 +125,63 @@ async function uploadImage(input,target){
  }catch(e){flash(e.message||'Image upload failed',true)}
  finally{input.disabled=false;if(save)save.disabled=false;}
 }
+let pendingProductPhotos=[];
+function renderProductGallery(){
+ const output=$('productGallery'),primary=$('productImage');
+ if(!output||!primary)return;
+ primary.value=pendingProductPhotos[0]||'';
+ output.replaceChildren();
+ pendingProductPhotos.forEach((url,index)=>{
+  const item=document.createElement('div');item.className='product-photo-item';
+  const image=document.createElement('img');image.src=url;image.alt='Product photo '+(index+1);image.loading='lazy';item.append(image);
+  const controls=document.createElement('div');controls.className='product-photo-actions';
+  if(index===0){const text=document.createElement('span');text.textContent='Main';controls.append(text);}
+  else{
+   const main=document.createElement('button');main.type='button';main.textContent='Make main';main.onclick=()=>{
+    const [selected]=pendingProductPhotos.splice(index,1);pendingProductPhotos.unshift(selected);renderProductGallery();
+   };controls.append(main);
+  }
+  const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';
+  remove.setAttribute('aria-label','Remove product photo '+(index+1));
+  remove.onclick=()=>{pendingProductPhotos.splice(index,1);renderProductGallery();};
+  controls.append(remove);item.append(controls);output.append(item);
+ });
+}
+async function uploadProductPhotos(input){
+ const selected=Array.from(input.files||[]);if(!selected.length)return;
+ if(pendingProductPhotos.length+selected.length>6){
+  $('productGalleryMessage').textContent='Maximum 6 photos per product. Remove photos before adding more.';
+  input.value='';return;
+ }
+ const form=$('productForm'),save=form?.querySelector('[type="submit"]');
+ input.disabled=true;if(save)save.disabled=true;
+ let uploaded=0;
+ try{
+  for(const original of selected){
+   $('productGalleryMessage').textContent='Uploading photo '+(uploaded+1)+' of '+selected.length+'…';
+   const image=await prepareProductImage(original);
+   const fd=new FormData();fd.append('image',image);
+   const res=await fetch('/api/upload.php',{method:'POST',headers:{'X-CSRF-Token':csrf},body:fd,credentials:'same-origin'});
+   const out=await res.json();if(!res.ok)throw Error(out.error||'Photo upload failed');
+   if(typeof out.url!=='string'||!out.url.startsWith('/uploads/'))throw Error('Unexpected photo URL.');
+   pendingProductPhotos.push(out.url);uploaded++;renderProductGallery();
+  }
+  $('productGalleryMessage').textContent=uploaded+' photo(s) uploaded. Click Save Product to retain these photos.';
+ }catch(error){
+  $('productGalleryMessage').textContent=uploaded+' photo(s) uploaded; '+(error.message||'upload failed')+'. You may retry.';
+ }finally{input.value='';input.disabled=false;if(save)save.disabled=false;}
+}
 function wireForms(){
  let uploader=$('shopLogoFile');if(uploader)uploader.onchange=()=>uploadImage(uploader,$('shopLogo'));
- uploader=$('productImageFile');if(uploader)uploader.onchange=()=>uploadImage(uploader,$('productImage'));
+ uploader=$('productImageFile');if(uploader){
+  const form=$('productForm'),id=Number(form?.dataset.id||0);
+  const existing=data?.products?.find(p=>Number(p.id)===id);
+  pendingProductPhotos=Array.isArray(existing?.images)?existing.images.slice(0,6):(existing?.image_url?[existing.image_url]:[]);
+  renderProductGallery();
+  uploader.onchange=()=>uploadProductPhotos(uploader);
+ }
  {const f=$('shopForm');if(f)f.onsubmit=async e=>{e.preventDefault();const btn=f.querySelector('[type="submit"]');btn.disabled=true;try{const result=await api('shop',{owner_name:$('accountName').value.trim(),name:$('shopName').value,phone:$('shopPhone').value,tagline:$('shopTag').value,address:$('shopAddress').value,logo_url:$('shopLogo').value,theme_color:$('shopThemeColor').value});user.name=result.owner_name;updateSidebarAccount();await refresh();flash('Profile saved successfully');}catch(err){flash(err.message,true)}finally{btn.disabled=false;}};}
- {const f=$('productForm');if(f)f.onsubmit=e=>{e.preventDefault();post('product-save',{id:f.dataset.id?+f.dataset.id:0,name:$('productName').value,category_id:$('productCat').value,description:$('productDesc').value,price:$('productPrice').value,unit:$('productUnit').value.trim(),display_order:$('productOrder').value,image_url:$('productImage').value,active:$('productActive').checked},'Product saved');};}
+ {const f=$('productForm');if(f)f.onsubmit=e=>{e.preventDefault();post('product-save',{id:f.dataset.id?+f.dataset.id:0,name:$('productName').value,category_id:$('productCat').value,description:$('productDesc').value,price:$('productPrice').value,unit:$('productUnit').value.trim(),display_order:$('productOrder').value,image_url:$('productImage').value,images:[...pendingProductPhotos],active:$('productActive').checked},'Product saved');};}
  {const f=$('categoryForm');if(f)f.onsubmit=async e=>{
   e.preventDefault();
   const name=$('categoryName').value.trim();
