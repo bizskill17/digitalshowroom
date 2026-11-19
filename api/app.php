@@ -300,30 +300,6 @@ try{
   respond(['error'=>'Unsupported admin operation'],403);
  }
  $shop=shopFor($db,(int)$u['id']);$sid=(int)$shop['id'];
- if($action==='enquiry-delete'){
-  $id=filter_var($d['id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
-  if($id===false||$id===null)respond(['error'=>'Invalid enquiry'],422);
-  $db->beginTransaction();
-  try{
-   // Lock and verify shop ownership before deleting any child rows.
-   $check=$db->prepare('SELECT id FROM ds_enquiries WHERE id=? AND shop_id=? FOR UPDATE');
-   $check->execute([$id,$sid]);
-   if(!$check->fetchColumn()){
-    $db->rollBack();
-    respond(['error'=>'Enquiry not found'],404);
-   }
-   $items=$db->prepare('DELETE FROM ds_enquiry_items WHERE enquiry_id=?');
-   $items->execute([$id]);
-   $enquiry=$db->prepare('DELETE FROM ds_enquiries WHERE id=? AND shop_id=?');
-   $enquiry->execute([$id,$sid]);
-   if($enquiry->rowCount()!==1)throw new RuntimeException('Enquiry could not be deleted');
-   $db->commit();
-  }catch(Throwable $e){
-   if($db->inTransaction())$db->rollBack();
-   throw $e;
-  }
-  respond(['ok'=>true]);
- }
  if($action==='enquiry-status'){
   $id=filter_var($d['id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
   $status=(string)($d['status']??'');
