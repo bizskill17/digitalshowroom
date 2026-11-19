@@ -106,8 +106,20 @@ try{
  $shop=shopFor($db,(int)$u['id']);$sid=(int)$shop['id'];
  if($action==='shop'){
   $name=clean($d['name']??'');$tagline=clean($d['tagline']??'',255);$phone=preg_replace('/\D/','',(string)($d['phone']??''));$address=clean($d['address']??'',255);$logo=clean($d['logo_url']??'',500);
+  $ownerName=array_key_exists('owner_name',$d)?clean($d['owner_name'],150):$u['name'];
+  if(!$ownerName)respond(['error'=>'Your Name is required'],422);
   if(!$name||strlen($phone)<10||strlen($phone)>15||($logo&&!preg_match('~^https?://~i',$logo)&&!str_starts_with($logo,'/uploads/')))respond(['error'=>'Enter valid shop details'],422);
-  $q=$db->prepare('UPDATE ds_shops SET name=?,tagline=?,phone=?,address=?,logo_url=? WHERE id=?');$q->execute([$name,$tagline,$phone,$address,$logo,$sid]);respond(['ok'=>true]);
+  $db->beginTransaction();
+  try{
+   $q=$db->prepare('UPDATE ds_shops SET name=?,tagline=?,phone=?,address=?,logo_url=? WHERE id=? AND user_id=?');
+   $q->execute([$name,$tagline,$phone,$address,$logo,$sid,(int)$u['id']]);
+   if($ownerName!==$u['name']){
+    $q=$db->prepare('UPDATE ds_users SET name=? WHERE id=?');
+    $q->execute([$ownerName,(int)$u['id']]);
+   }
+   $db->commit();
+  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+  respond(['ok'=>true,'owner_name'=>$ownerName]);
  }
  if($action==='category-save'){
   $name=clean($d['name']??'',120);$id=(int)($d['id']??0);
