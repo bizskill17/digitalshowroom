@@ -183,7 +183,7 @@ function render(){
   if(view==='subscription'){name='Subscription';html=panel('Your Plan','<div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+stat('Current Plan','Free','green')+stat('Products Used',data.products.length+' / '+data.free_product_limit,'blue')+'</div><p>Paid subscription plans and Razorpay integration are planned and are not yet enabled.</p>');}
  }
  title(name);$('content').innerHTML=html;wireForms();
- document.querySelectorAll('[data-do]').forEach(b=>b.onclick=()=>doAction(b.dataset.do));
+ // Actions are delegated below so buttons added after render() remain clickable.
 }
 async function refresh(){data=await api('dashboard');if(!(data.role==='admin'?adminViews:sellerViews).includes(view))view='dashboard';render();}
 async function post(action,payload,success){try{await api(action,payload);flash(success||'Saved successfully');await refresh();}catch(e){flash(e.message,true)}}
@@ -331,6 +331,13 @@ function wireForms(){
   button.innerHTML=show?'<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1"/><path d="M6.3 6.3C3.6 8.3 2 12 2 12s3.5 7 10 7a10.7 10.7 0 0 0 4.1-.8"/><path d="M10 10a3 3 0 0 0 4 4"/></svg>':'<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
  });
 }
+// Handle dynamically inserted buttons (import template, cancel, edit, etc.).
+document.addEventListener('click',event=>{
+ const button=event.target.closest('[data-do]');
+ if(!button||button.disabled)return;
+ event.preventDefault();
+ doAction(button.dataset.do);
+});
 async function doAction(action){
  if(action==='copyLink'){try{await navigator.clipboard.writeText(shopUrl());flash('Shop link copied');}catch(e){flash('Copy unavailable in this browser',true)}return;}
  if(action==='nav-status'){navigateTo('status');return;}
