@@ -30,3 +30,13 @@
 input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+
+/* Phase 1: each public showroom uses its own seller-selected brand colour. */
+.shop-view{--shop-accent:#C02664;background:color-mix(in srgb,var(--shop-accent) 5%,white)}
+.shop-view .shop-header{background:var(--shop-accent)}
+.shop-view .shop-filter button{border-color:color-mix(in srgb,var(--shop-accent) 40%,white)}
+.shop-view .shop-filter button.active{background:var(--shop-accent);border-color:var(--shop-accent);color:white}
+.shop-view .product-card{border-color:color-mix(in srgb,var(--shop-accent) 20%,white)}
+.shop-view .product-card img{background:color-mix(in srgb,var(--shop-accent) 10%,white)}
+.shop-view .shop-banner{background:color-mix(in srgb,var(--shop-accent) 7%,white);border-color:color-mix(in srgb,var(--shop-accent) 20%,white)}
+.shop-view .shop-cart .btn{background:var(--shop-accent);border-color:var(--shop-accent);color:white}
