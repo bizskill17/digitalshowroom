@@ -39,6 +39,8 @@ function render(){
  const palette=['#E83F7E','#1D4ED8','#0F766E','#6D28D9','#9A3412','#334155'];
  const colour=String(s.theme_color||'#E83F7E').toUpperCase();
  document.body.style.setProperty('--shop-accent',palette.includes(colour)?colour:'#E83F7E');
+ const style=['classic','modern','minimal'].includes(s.theme_style)?s.theme_style:'classic';
+ document.body.dataset.shopTheme=style;
  $('shopHeader').innerHTML=(s.logo_url?'<img src="'+esc(s.logo_url)+'" alt="" style="width:78px;height:78px;object-fit:cover;border-radius:50%;background:white">':'<div style="font-size:56px">🏬</div>')+'<div><h1>'+esc(s.name)+'</h1><p style="margin:6px 0">'+esc(s.tagline)+'</p><small>'+esc(s.address)+'</small></div>';
  $('filter').innerHTML='<button class="'+(!category?'active':'')+'" data-category="0">All Products</button>'+data.categories.map(c=>'<button class="'+(category==c.id?'active':'')+'" data-category="'+c.id+'">'+esc(c.name)+'</button>').join('');
  const shown=data.products.filter(p=>!category||p.category_id==category);
