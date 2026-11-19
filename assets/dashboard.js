@@ -3,6 +3,7 @@ const $=id=>document.getElementById(id);
 let csrf='',user=null,data=null,view='dashboard';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const api=async(action,payload)=>{let res=await fetch('/api/app.php?action='+encodeURIComponent(action),{method:payload?'POST':'GET',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:payload?JSON.stringify(payload):undefined,credentials:'same-origin'});let out=await res.json();if(!res.ok)throw Error(out.error||'Request failed');return out;};
+function updateSidebarAccount(){if(!user)return;$('userName').textContent=user.name;const initials=user.name.trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();$('userInitials').textContent=initials||'U';$('userRole').textContent=user.role==='admin'?'Admin':'Seller';}
 function flash(message,bad=false){$('flash').innerHTML='<div class="notice '+(bad?'error':'success')+'">'+esc(message)+'</div>';setTimeout(()=>{$('flash').innerHTML='';},6000)}
 const button=(name,fn,cls='soft')=>'<button class="btn sm '+cls+'" data-do="'+esc(fn)+'">'+esc(name)+'</button>';
 function nav(){const menus=data.role==='admin'?[['dashboard','Dashboard'],['shops','Seller & Shop Management'],['settings','Platform Settings'],['plans','Subscription Plans'],['payments','Payments (Future)']]:[['dashboard','Dashboard'],['profile','Shop Profile'],['categories','Product Categories'],['products','Products'],['catalogues','Catalogues'],['status','WhatsApp Status'],['public','Public Showroom'],['subscription','Subscription']];$('sideNav').innerHTML=menus.map(([id,label])=>'<button class="side-link '+(view===id?'active':'')+'" data-nav="'+id+'">'+label+'</button>').join('');document.querySelectorAll('[data-nav]').forEach(n=>n.onclick=()=>{view=n.dataset.nav;render();});}
@@ -31,7 +32,7 @@ function categoryPanel(){
 }
 function profilePanel(){
  const s=data.shop;
- return panel('Shop Profile','<form id="shopForm"><div class="form-grid">'+field('Shop Name *','shopName',s.name,'text','required maxlength="150"')+field('WhatsApp Number *','shopPhone',s.phone,'tel','required maxlength="15"')+field('Tagline','shopTag',s.tagline,'text','maxlength="255"')+field('Shop Address','shopAddress',s.address,'text','maxlength="255"')+'</div>'+field('Logo Image URL','shopLogo',s.logo_url||'','url','placeholder="https://example.com/logo.png"')+'<div class="field"><label for="shopLogoFile">Or upload shop logo (JPG, PNG, WebP)</label><input type="file" id="shopLogoFile" accept="image/jpeg,image/png,image/webp"></div><p class="hint">Upload a logo or supply an image URL.</p><p><b>Public shop URL:</b> '+esc(shopUrl())+'</p><button class="btn primary" type="submit">Save Profile</button></form>');
+ return panel('Shop Profile','<form id="shopForm"><div class="form-grid">'+field('Shop Name *','shopName',s.name,'text','required maxlength="150"')+field('WhatsApp Number *','shopPhone',s.phone,'tel','required maxlength="15"')+field('Tagline','shopTag',s.tagline,'text','maxlength="255"')+field('Shop Address','shopAddress',s.address,'text','maxlength="255"')+'</div>'+field('Logo Image URL','shopLogo',s.logo_url||'','url','placeholder="https://example.com/logo.png"')+'<div class="field"><label for="shopLogoFile">Or upload shop logo (JPG, PNG, WebP)</label><input type="file" id="shopLogoFile" accept="image/jpeg,image/png,image/webp"></div><p class="hint">Upload a logo or supply an image URL.</p><p><b>Public shop URL:</b> '+esc(shopUrl())+'</p><button class="btn primary" type="submit">Save Profile</button></form>')+panel('Account Details','<form id="accountForm">'+field('Your Name *','accountName',user?.name||'','text','required maxlength="150"')+'<button type="submit" class="btn primary">Save Name</button></form>');
 }
 function productForm(id){
  const p=data.products.find(v=>v.id==id)||{name:'',description:'',category_id:'',price:'',image_url:'',active:1};let cats='<option value="">No Category</option>'+data.categories.map(c=>'<option value="'+c.id+'" '+(c.id==p.category_id?'selected':'')+'>'+esc(c.name)+'</option>').join('');
@@ -59,10 +60,8 @@ function adminShops(){
  return panel('Seller & Shop Management',wrapTable(['Seller','Shop','Products','Status','Actions'],rows));
 }
 function adminSettings(){return panel('Platform Settings','<form id="settingsForm">'+field('Free Product Limit','freeLimit',data.stats.free_product_limit,'number','min="0" max="100000" step="1" required')+'<p class="hint">Changing this limit affects the allowed number of products for free sellers. Existing products are not deleted.</p><button type="submit" class="btn primary">Save Settings</button></form>');}
-function accountPanel(){return panel('Edit My Name','<form id="accountForm">'+field('Your Name *','accountName',user?.name||'','text','required maxlength="150"')+'<button type="submit" class="btn primary">Save Name</button> '+button('Cancel','cancel-account')+'</form>');}
 function render(){
  nav();
- if(view==='account'){title('My Account');$('content').innerHTML=accountPanel();wireForms();document.querySelectorAll('[data-do]').forEach(b=>b.onclick=()=>doAction(b.dataset.do));return;}
  let html='',name='Dashboard';
  if(data.role==='admin'){
   if(view==='dashboard')html=adminDashboard();
@@ -87,7 +86,7 @@ async function refresh(){data=await api('dashboard');if(data.role==='admin'&& ![
 async function post(action,payload,success){try{await api(action,payload);flash(success||'Saved successfully');await refresh();}catch(e){flash(e.message,true)}}
 async function uploadImage(input,target){if(!input.files||!input.files[0])return;const fd=new FormData();fd.append('image',input.files[0]);input.disabled=true;try{const res=await fetch('/api/upload.php',{method:'POST',headers:{'X-CSRF-Token':csrf},body:fd,credentials:'same-origin'});const out=await res.json();if(!res.ok)throw Error(out.error||'Upload failed');target.value=out.url;flash('Image uploaded successfully');}catch(e){flash(e.message,true)}finally{input.disabled=false;}}
 function wireForms(){
- {const f=$('accountForm');if(f)f.onsubmit=async e=>{e.preventDefault();const name=$('accountName').value.trim();const btn=f.querySelector('[type="submit"]');btn.disabled=true;try{const result=await api('account-name',{name});user.name=result.name;$('userName').textContent=user.name;view='dashboard';render();flash('Name updated successfully');}catch(err){flash(err.message,true)}finally{btn.disabled=false;}};}
+ {const f=$('accountForm');if(f)f.onsubmit=async e=>{e.preventDefault();const name=$('accountName').value.trim();const btn=f.querySelector('[type="submit"]');btn.disabled=true;try{const result=await api('account-name',{name});user.name=result.name;updateSidebarAccount();render();flash('Name updated successfully');}catch(err){flash(err.message,true)}finally{btn.disabled=false;}};}
  let uploader=$('shopLogoFile');if(uploader)uploader.onchange=()=>uploadImage(uploader,$('shopLogo'));
  uploader=$('productImageFile');if(uploader)uploader.onchange=()=>uploadImage(uploader,$('productImage'));
  {const f=$('shopForm');if(f)f.onsubmit=e=>{e.preventDefault();post('shop',{name:$('shopName').value,phone:$('shopPhone').value,tagline:$('shopTag').value,address:$('shopAddress').value,logo_url:$('shopLogo').value});};}
@@ -120,7 +119,6 @@ async function doAction(action){
  if(action==='copyLink'){try{await navigator.clipboard.writeText(shopUrl());flash('Shop link copied');}catch(e){flash('Copy unavailable in this browser',true)}return;}
  if(action==='nav-status'){view='status';render();return;}
  if(action==='nav-settings'){view='settings';render();return;}
- if(action==='cancel-account'){view='dashboard';render();return;}
  if(action==='cancel'){render();return;}
  let id;
  if(action==='new-product'||action.startsWith('edit-product-')){$('content').innerHTML=productForm(action==='new-product'?0:+action.split('-').pop());wireForms();return;}
@@ -144,6 +142,5 @@ function generateStatus(){
   if(p.image_url){const img=new Image();img.crossOrigin='anonymous';img.onload=()=>{try{ctx.drawImage(img,50,200,700,530)}catch(e){}try{finish()}catch(e){flash('This image host prevents download. Use an image from a CORS-enabled host.',true)}};img.onerror=finish;img.src=p.image_url;}else finish();
  });
 }
-$('editAccount').onclick=()=>{view='account';render();};
 $('logout').onclick=async()=>{try{await api('logout',{});}finally{location.href='/login.html';}};
-api('me').then(async d=>{if(!d.user){location.href='/login.html';return;}csrf=d.csrf;user=d.user;$('userName').textContent=user.name;await refresh();}).catch(()=>{location.href='/login.html';});
+api('me').then(async d=>{if(!d.user){location.href='/login.html';return;}csrf=d.csrf;user=d.user;updateSidebarAccount();await refresh();}).catch(()=>{location.href='/login.html';});
