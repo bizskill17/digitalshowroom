@@ -27,14 +27,40 @@ function render(){
  document.querySelectorAll('[data-dec]').forEach(b=>b.onclick=()=>{cart[b.dataset.dec]=Math.max(0,(cart[b.dataset.dec]||0)-1);render()});
  count();
 }
-function whatsapp(quote){
- if(!data)return;
- const chosen=data.products.filter(p=>cart[p.id]>0);if(!chosen.length){alert('Please select at least one product.');return}
+let enquiryPending=false;
+async function whatsapp(quote){
+ if(!data||enquiryPending)return;
+ const chosen=data.products.filter(p=>Number(cart[p.id]||0)>0);
+ if(!chosen.length){alert('Please select at least one product.');return;}
+ const phone=String(data.shop.phone||'').replace(/\D/g,'');
+ if(phone.length<10){alert('Shop WhatsApp number is unavailable.');return;}
+ const number=phone.length===10?'91'+phone:phone;
+ const lines=chosen.map(p=>({id:Number(p.id),quantity:Number(cart[p.id])}));
  const details=chosen.map(p=>'- '+p.name+' × '+cart[p.id]+' '+(p.unit||'Piece')+(p.price!==null?' (₹'+(Number(p.price)*cart[p.id]).toFixed(2)+')':' (price on request)')).join('\n');
  const n=chosen.reduce((sum,p)=>sum+(p.price===null?0:Number(p.price)*cart[p.id]),0);
- const text=(quote?'Hello, I would like a quotation for:':'Hello, I would like to order:')+'\n'+details+'\n'+(chosen.every(p=>p.price!==null)?'Estimated total: ₹'+n.toFixed(2)+'\n':'')+'Shop: '+data.shop.name;
- const phone=String(data.shop.phone||'').replace(/\D/g,'');const number=phone.length===10?'91'+phone:phone;
- window.open('https://wa.me/'+number+'?text='+encodeURIComponent(text),'_blank','noopener');
+ // Reserve a tab while in the original button click: asynchronous window.open can be blocked.
+ const tab=window.open('about:blank','_blank');
+ enquiryPending=true;
+ const buttons=[$('orderBtn'),$('quoteBtn')];buttons.forEach(b=>b.disabled=true);
+ try{
+  const response=await fetch('/api/app.php?action=public-enquiry',{
+   method:'POST',credentials:'same-origin',
+   headers:{'Content-Type':'application/json','X-CSRF-Token':data.csrf},
+   body:JSON.stringify({slug:data.shop.slug,kind:quote?'quotation':'order',items:lines})
+  });
+  const result=await response.json();
+  if(!response.ok||!result.ok)throw Error(result.error||'Could not record enquiry');
+  const message=(quote?'Hello, I would like a quotation for:':'Hello, I would like to order:')+'\n'+details+'\n'+(chosen.every(p=>p.price!==null)?'Estimated total: ₹'+n.toFixed(2)+'\n':'')+'Shop: '+data.shop.name+'\nEnquiry Ref: '+result.enquiry_id;
+  const url='https://wa.me/'+number+'?text='+encodeURIComponent(message);
+  if(tab&&!tab.closed){tab.location.href=url;}
+  else{window.location.href=url;}
+ }catch(error){
+  if(tab&&!tab.closed)tab.close();
+  alert((error.message||'Enquiry could not be saved')+'. Please try again.');
+ }finally{
+  enquiryPending=false;
+  buttons.forEach(b=>b.disabled=false);
+ }
 }
 $('orderBtn').onclick=()=>whatsapp(false);$('quoteBtn').onclick=()=>whatsapp(true);
 fetch('/api/app.php?action=public&slug='+encodeURIComponent(slug),{credentials:'same-origin'}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.error||'Shop unavailable');data=d;render()}).catch(e=>{$('shopHeader').innerHTML='<h1>Shop unavailable</h1>';$('shopError').innerHTML='<p class="notice error">'+esc(e.message)+'</p>'});
