@@ -422,3 +422,6 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
 .plan-editor-dialog .plan-editor-actions{position:sticky;bottom:-22px;background:white;border-top:1px solid #e5ebf3;padding:13px 0 4px;margin-top:15px}
 .plan-master-panel #planEditorArea:not(:empty){margin:0;padding:0;border:0}
 @media(max-width:620px){.plan-editor-dialog{padding:15px;max-height:90dvh}.plan-editor-dialog .panel-head{top:-15px}.plan-editor-dialog .plan-editor-actions{bottom:-15px}}
+
+/* Keep Add Plan aligned to the right when the duplicate panel heading is absent. */
+.plan-master-panel .plan-master-actions{justify-content:flex-end}
