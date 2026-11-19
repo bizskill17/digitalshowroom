@@ -358,16 +358,14 @@ try{
   }
   if($action==='plan-save'){
    $id=filter_var($d['id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);
-   $code=strtolower(clean($d['code']??'',60));
    $name=clean($d['name']??'',100);
-   $description=clean($d['description']??'',255);
    $monthly=planMoney($d['monthly_price']??'');
    $annual=planMoney($d['annual_price']??'');
    $products=planLimit($d['product_limit']??null);
    $catalogues=planLimit($d['catalogue_limit']??null);
    $sort=filter_var($d['sort_order']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>999999]]);
    $features=$d['features']??null;
-   if($id===false||!preg_match('/^[a-z][a-z0-9-]{1,59}$/',$code)||!$name||$monthly===null||$annual===null||$products===false||$catalogues===false||$sort===false||!is_array($features))respond(['error'=>'Enter valid plan details, prices and limits'],422);
+   if($id===false||!$name||$monthly===null||$annual===null||$products===false||$catalogues===false||$sort===false||!is_array($features))respond(['error'=>'Enter valid plan details, prices and limits'],422);
    $featureKeys=['analytics','whatsapp_status','catalogue_pdf','remove_branding'];
    if(array_diff(array_keys($features),$featureKeys))respond(['error'=>'Unknown plan feature'],422);
    $flags=[];
@@ -384,8 +382,9 @@ try{
      $q=$db->prepare('SELECT id,code FROM ds_subscription_plans WHERE id=? FOR UPDATE');
      $q->execute([$id]);$old=$q->fetch();
      if(!$old){$db->rollBack();respond(['error'=>'Plan not found'],404);}
-     if($code!==$old['code']){$db->rollBack();respond(['error'=>'The plan code cannot be changed after creation'],422);}
     }
+    // Internal plan identifiers are generated automatically for new plans and stay stable on edits.
+    $code=$old?(string)$old['code']:'plan-'.bin2hex(random_bytes(12));
     if($code==='free'){
      if($id===0||!$active||$monthly!=='0.00'||$annual!=='0.00'||$products===null){
       $db->rollBack();respond(['error'=>'Free plan must remain active, have zero price and a numeric product limit'],422);
@@ -398,11 +397,11 @@ try{
     }
     $json=json_encode($flags,JSON_THROW_ON_ERROR);
     if($id>0){
-     $q=$db->prepare('UPDATE ds_subscription_plans SET name=?,description=?,monthly_price=?,annual_price=?,product_limit=?,catalogue_limit=?,features_json=?,active=?,sort_order=? WHERE id=?');
-     $q->execute([$name,$description,$monthly,$annual,$products,$catalogues,$json,$active?1:0,$sort,$id]);
+     $q=$db->prepare('UPDATE ds_subscription_plans SET name=?,monthly_price=?,annual_price=?,product_limit=?,catalogue_limit=?,features_json=?,active=?,sort_order=? WHERE id=?');
+     $q->execute([$name,$monthly,$annual,$products,$catalogues,$json,$active?1:0,$sort,$id]);
     }else{
      $q=$db->prepare('INSERT INTO ds_subscription_plans(code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,features_json,active,sort_order) VALUES(?,?,?,?,?,?,?,?,?,?)');
-     $q->execute([$code,$name,$description,$monthly,$annual,$products,$catalogues,$json,$active?1:0,$sort]);
+     $q->execute([$code,$name,'',$monthly,$annual,$products,$catalogues,$json,$active?1:0,$sort]);
      $id=(int)$db->lastInsertId();
     }
     $db->commit();
