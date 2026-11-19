@@ -14,7 +14,7 @@ A multi-seller WhatsApp-first showroom application on Hostinger PHP/MySQL.
 - Seller registration and login with hashed passwords, session authentication and CSRF checks
 - One shop per registered seller; public link using a unique slug
 - Seller shop profile, categories, products, catalogues and catalogue-product links
-- Product images using externally hosted HTTPS image URLs
+- Product images using authenticated JPG/PNG/WebP uploads (max 5 MB) or external HTTPS URLs
 - Dynamic public showroom, quantity selection, WhatsApp order/quotation message
 - Basic canvas-based product status image generation
 - Administrator dashboard: sellers/shops, enable/disable shops and global free product allowance
@@ -48,7 +48,7 @@ For production, restrict database privileges, apply stronger registration abuse 
 
 ## Not implemented yet
 - Razorpay payments, paid subscription activation/renewals and per-shop plan limits
-- Product image uploads, multiple images per product, user-friendly media library
+- Multiple images per product and a full media library (single-image uploads now supported)
 - Password reset/email verification, registration throttling and audit logs
 - Advanced catalogue PDF/ZIP generation in the new dashboard (the original demo remains at `/demo.html`)
 - Order management/payment collection (buyers currently send WhatsApp messages)
