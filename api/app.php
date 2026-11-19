@@ -398,7 +398,16 @@ try{
   if($action==='settings'){
    $n=filter_var($d['free_product_limit']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>100000]]);
    if($n===false)respond(['error'=>'Enter a valid product limit'],422);
-   $q=$db->prepare("UPDATE ds_settings SET setting_value=? WHERE setting_key='free_product_limit'");$q->execute([(string)$n]);respond(['ok'=>true]);
+   // Compatibility for older Admin tabs: never allow divergence between old setting and Free plan.
+   $db->beginTransaction();
+   try{
+    $q=$db->prepare("UPDATE ds_settings SET setting_value=? WHERE setting_key='free_product_limit'");
+    $q->execute([(string)$n]);
+    $q=$db->prepare("UPDATE ds_subscription_plans SET product_limit=? WHERE code='free'");
+    $q->execute([$n]);
+    $db->commit();
+   }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+   respond(['ok'=>true]);
   }
   if($action==='shop-status'){
    $q=$db->prepare('UPDATE ds_shops SET active=? WHERE id=?');$q->execute([!empty($d['active'])?1:0,(int)($d['id']??0)]);respond(['ok'=>true]);
