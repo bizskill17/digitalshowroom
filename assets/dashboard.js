@@ -139,22 +139,20 @@ async function updateEnquiryStatus(select){
   if(entry)select.value=entry.status;
  }finally{select.disabled=false;}
 }
-let analyticsLoading=false,analyticsResult=null,analyticsError='',analyticsMode='30',analyticsCustomFrom='',analyticsCustomTo='';
+let analyticsLoading=false,analyticsResult=null,analyticsError='',analyticsFromDate='',analyticsToDate='',analyticsRequestId=0;
+function analyticsToday(){
+ const now=new Date();
+ return now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+}
 function analyticsDates(){
- const now=new Date(),end=new Date(now.getFullYear(),now.getMonth(),now.getDate());
- const start=new Date(end);
- if(analyticsMode==='7')start.setDate(start.getDate()-6);
- else if(analyticsMode==='30')start.setDate(start.getDate()-29);
- const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
- return analyticsMode==='custom'?{from:analyticsCustomFrom,to:analyticsCustomTo}:{from:iso(start),to:iso(end)};
+ const today=analyticsToday();
+ return {from:analyticsFromDate||today,to:analyticsToDate||today};
 }
 function analyticsPanel(){
  const dates=analyticsDates();
  const filter='<div class="analytics-filter-bar">'+
  '<div class="field"><label for="analyticsFrom">From Date</label><input type="date" id="analyticsFrom" value="'+esc(dates.from)+'"></div>'+
  '<div class="field"><label for="analyticsTo">To Date</label><input type="date" id="analyticsTo" value="'+esc(dates.to)+'"></div>'+
- '<div class="field"><label for="analyticsRange">Period</label><select id="analyticsRange">'+
- [['today','Today'],['7','Last 7 Days'],['30','Last 30 Days'],['custom','Custom Range']].map(([value,label])=>'<option value="'+value+'" '+(analyticsMode===value?'selected':'')+'>'+label+'</option>').join('')+'</select></div>'+
  '<button class="btn soft analytics-clear" type="button" id="analyticsClear">Clear</button></div>';
  let body='';
  if(analyticsLoading)body='<p>Loading analytics...</p>';
@@ -188,31 +186,18 @@ async function fetchAnalytics(){
  finally{analyticsLoading=false;if(view==='analytics')render();}
 }
 function wireAnalytics(){
- const select=$('analyticsRange');
- if(select)select.onchange=()=>{
-  const previousDates=analyticsDates();
-  analyticsMode=select.value;
-  if(analyticsMode==='custom'){
-   analyticsCustomFrom=previousDates.from;
-   analyticsCustomTo=previousDates.to;
-  }
-  analyticsResult=null;
-  fetchAnalytics();
- };
- const setCustomDates=()=>{
-  analyticsCustomFrom=$('analyticsFrom').value;
-  analyticsCustomTo=$('analyticsTo').value;
-  analyticsMode='custom';
+ const updateDates=()=>{
+  analyticsFromDate=$('analyticsFrom').value;
+  analyticsToDate=$('analyticsTo').value;
   analyticsResult=null;
   fetchAnalytics();
  };
  for(const id of ['analyticsFrom','analyticsTo']){
-  const field=$(id);if(field)field.onchange=setCustomDates;
+  const field=$(id);if(field)field.onchange=updateDates;
  }
  const clear=$('analyticsClear');
  if(clear)clear.onclick=()=>{
-  analyticsMode='30';
-  analyticsCustomFrom='';analyticsCustomTo='';
+  analyticsFromDate='';analyticsToDate='';
   analyticsResult=null;
   fetchAnalytics();
  };
