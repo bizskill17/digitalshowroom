@@ -34,7 +34,7 @@ function setup(PDO $db):void{
  $brandColumn=$db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ds_shops' AND COLUMN_NAME='theme_color'");
  $brandColumn->execute();
  if (!(int)$brandColumn->fetchColumn()) {
-  try {$db->exec("ALTER TABLE ds_shops ADD COLUMN theme_color VARCHAR(7) NOT NULL DEFAULT '#C02664'");}
+  try {$db->exec("ALTER TABLE ds_shops ADD COLUMN theme_color VARCHAR(7) NOT NULL DEFAULT '#E83F7E'");}
   catch(PDOException $e) {if(($e->errorInfo[1]??null)!==1060)throw $e;}
  }
  // Non-destructive, idempotent additions to existing product records.
@@ -152,8 +152,8 @@ try{
  $shop=shopFor($db,(int)$u['id']);$sid=(int)$shop['id'];
  if($action==='shop'){
   $name=clean($d['name']??'');$tagline=clean($d['tagline']??'',255);$phone=preg_replace('/\D/','',(string)($d['phone']??''));$address=clean($d['address']??'',255);$logo=clean($d['logo_url']??'',500);
-  $palette=['#C02664','#1D4ED8','#0F766E','#6D28D9','#9A3412','#334155'];
-  $theme=strtoupper(clean($d['theme_color']??'#C02664',7));
+  $palette=['#E83F7E','#1D4ED8','#0F766E','#6D28D9','#9A3412','#334155'];
+  $theme=strtoupper(clean($d['theme_color']??'#E83F7E',7));
   if(!in_array($theme,$palette,true))respond(['error'=>'Choose a valid shop colour'],422);
   $ownerName=array_key_exists('owner_name',$d)?clean($d['owner_name'],150):$u['name'];
   if(!$ownerName)respond(['error'=>'Your Name is required'],422);
