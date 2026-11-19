@@ -1,7 +1,7 @@
 
 const $=id=>document.getElementById(id);
 let csrf='',user=null,data=null,view='dashboard';
-const sellerViews=['dashboard','profile','categories','products','catalogues','status','public','subscription'];
+const sellerViews=['dashboard','profile','categories','products','catalogues','enquiries','status','public','subscription'];
 const adminViews=['dashboard','shops','settings','plans','payments'];
 function getViewFromUrl(){const key=decodeURIComponent(location.hash.slice(1));return (user?.role==='admin'?adminViews:sellerViews).includes(key)?key:'dashboard';}
 function navigateTo(next){view=next;if(location.hash!=='#'+next)history.pushState(null,'','#'+next);render();}
@@ -12,7 +12,7 @@ const api=async(action,payload)=>{let res=await fetch('/api/app.php?action='+enc
 function updateSidebarAccount(){if(!user)return;$('userName').textContent=user.name;const initials=user.name.trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();$('userInitials').textContent=initials||'U';$('userRole').textContent=user.role==='admin'?'Admin':'Seller';}
 function flash(message,bad=false){$('flash').innerHTML='<div class="notice '+(bad?'error':'success')+'">'+esc(message)+'</div>';setTimeout(()=>{$('flash').innerHTML='';},6000)}
 const button=(name,fn,cls='soft')=>'<button class="btn sm '+cls+'" data-do="'+esc(fn)+'">'+esc(name)+'</button>';
-function nav(){const menus=data.role==='admin'?[['dashboard','Dashboard'],['shops','Seller & Shop Management'],['settings','Platform Settings'],['plans','Subscription Plans'],['payments','Payments']]:[['dashboard','Dashboard'],['profile','Shop Profile'],['categories','Product Categories'],['products','Products'],['catalogues','Catalogues'],['status','WhatsApp Status'],['public','Public Showroom'],['subscription','Subscription']];$('sideNav').innerHTML=menus.map(([id,label])=>'<button class="side-link '+(view===id?'active':'')+'" data-nav="'+id+'">'+label+'</button>').join('');document.querySelectorAll('[data-nav]').forEach(n=>n.onclick=()=>navigateTo(n.dataset.nav));}
+function nav(){const menus=data.role==='admin'?[['dashboard','Dashboard'],['shops','Seller & Shop Management'],['settings','Platform Settings'],['plans','Subscription Plans'],['payments','Payments']]:[['dashboard','Dashboard'],['profile','Shop Profile'],['categories','Product Categories'],['products','Products'],['catalogues','Catalogues'],['enquiries','Enquiry Inbox'],['status','WhatsApp Status'],['public','Public Showroom'],['subscription','Subscription']];$('sideNav').innerHTML=menus.map(([id,label])=>'<button class="side-link '+(view===id?'active':'')+'" data-nav="'+id+'">'+label+'</button>').join('');document.querySelectorAll('[data-nav]').forEach(n=>n.onclick=()=>navigateTo(n.dataset.nav));}
 function title(t){$('pageTitle').textContent=t;}
 function stat(name,value,klass='blue',hint=''){return '<div class="stat '+klass+'"><span>'+esc(name)+'</span><b>'+esc(value)+'</b><small>'+esc(hint)+'</small></div>'}
 function tdActions(edit,del){return '<div class="inline-actions">'+button('Edit',edit)+button('Delete',del,'danger')+'</div>'}
@@ -20,6 +20,53 @@ function panel(heading,inside,extra=''){return '<section class="panel"><div clas
 function wrapTable(head,rows){return '<div class="table-wrap"><table class="data-table"><thead><tr>'+head.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="'+head.length+'" class="placeholder">No records yet</td></tr>')+'</tbody></table></div>'}
 function shopUrl(){return location.origin+'/'+encodeURIComponent(data.shop.slug)}
 function field(label,id,value='',type='text',extra=''){return '<div class="field"><label for="'+id+'">'+esc(label)+'</label><input id="'+id+'" type="'+type+'" value="'+esc(value)+'" '+extra+'></div>'}
+let enquiryRecords=[],enquiryLoaded=false,enquiryLoading=false,enquiryError='';
+function formatEnquiryDate(value){
+ const match=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/);
+ return match?match[3]+'/'+match[2]+'/'+match[1]+(match[4]?' '+match[4]:''):String(value||'');
+}
+function enquiryPanel(){
+ if(enquiryError)return panel('Enquiry Inbox','<div class="notice error">'+esc(enquiryError)+'</div>'+button('Retry','retry-enquiries'));
+ if(!enquiryLoaded)return panel('Enquiry Inbox','<p class="muted">Loading enquiries...</p>');
+ if(!enquiryRecords.length)return panel('Enquiry Inbox','<p>No enquiries recorded yet.</p>');
+ const rows=enquiryRecords.map(e=>{
+  const items=(e.items||[]).map(p=>{
+   const qty=Number(p.quantity);
+   const price=p.unit_price===null?'On request':'₹'+Number(p.unit_price).toFixed(2);
+   return '<div class="enquiry-item">'+esc(p.product_name)+' × '+qty+' '+esc(p.unit||'Piece')+' — '+price+'</div>';
+  }).join('');
+  const ref='ENQ-'+String(e.id).padStart(5,'0');
+  const type=e.kind==='quotation'?'Quotation':'Order';
+  const contact=e.customer_mobile?'<a href="https://wa.me/'+encodeURIComponent(e.customer_mobile)+'" target="_blank" rel="noopener">WhatsApp Customer</a>':'Contact not provided';
+  const details='<details><summary>View '+(e.items||[]).length+' item(s)</summary><div class="enquiry-items">'+items+'</div></details>';
+  const options=['New','Follow-up','Completed'].map(v=>'<option value="'+esc(v)+'" '+(e.status===v?'selected':'')+'>'+esc(v)+'</option>').join('');
+  const status='<select class="enquiry-status" data-enquiry-status="'+Number(e.id)+'" aria-label="Status of '+ref+'">'+options+'</select>';
+  const total=e.estimated_total===null?'On request':'₹'+Number(e.estimated_total).toFixed(2);
+  return '<tr><td>'+ref+'</td><td>'+esc(formatEnquiryDate(e.created_at))+'</td><td>'+type+'</td><td>'+details+'</td><td>'+total+'</td><td>'+contact+'</td><td>'+status+'</td></tr>';
+ }).join('');
+ return panel('Enquiry Inbox','<p class="muted enquiry-note">These are WhatsApp enquiries initiated by customers. WhatsApp message delivery is not confirmed.</p>'+wrapTable(['Reference','Date','Type','Products','Amount','Customer','Status'],rows));
+}
+async function loadEnquiries(){
+ if(enquiryLoading)return;
+ enquiryLoading=true;enquiryError='';
+ try{
+  const result=await api('enquiries');enquiryRecords=result.enquiries||[];enquiryLoaded=true;
+ }catch(error){enquiryError=error.message;enquiryLoaded=false;}
+ finally{enquiryLoading=false;if(view==='enquiries')render();}
+}
+async function updateEnquiryStatus(select){
+ const id=Number(select.dataset.enquiryStatus),status=select.value;
+ select.disabled=true;
+ try{
+  await api('enquiry-status',{id,status});
+  const entry=enquiryRecords.find(item=>Number(item.id)===id);if(entry)entry.status=status;
+  flash('Enquiry status updated');
+ }catch(error){
+  flash(error.message,true);
+  const entry=enquiryRecords.find(item=>Number(item.id)===id);
+  if(entry)select.value=entry.status;
+ }finally{select.disabled=false;}
+}
 function sellerDashboard(){
  const n=data.products.length,limit=data.free_product_limit;
  return ''
@@ -286,6 +333,7 @@ function render(){
   if(view==='products'){name='Products';html=productsPanel();}
   if(view==='categories'){name='Product Categories';html=categoryPanel();}
   if(view==='catalogues'){name='Catalogues';html=cataloguesPanel();}
+  if(view==='enquiries'){name='Enquiry Inbox';html=enquiryPanel();if(!enquiryLoaded&&!enquiryLoading&&!enquiryError)queueMicrotask(loadEnquiries);}
   if(view==='status'){name='WhatsApp Status';html=statusPanel();}
   if(view==='public'){name='Public Showroom';html=panel('Share Your Shop','<div class="preview-link">'+esc(shopUrl())+'</div><p>'+button('Copy Link','copyLink')+' <a class="btn sm primary" href="'+esc(shopUrl())+'" target="_blank">Open Showroom ↗</a></p>');}
   if(view==='subscription'){name='Subscription';html=panel('Your Plan','<div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+stat('Current Plan','Free','green')+stat('Products Used',data.products.length+' / '+data.free_product_limit,'blue')+'</div><p>Paid subscription plans and Razorpay integration are planned and are not yet enabled.</p>');}
@@ -378,6 +426,8 @@ async function uploadProductPhotos(input){
  }finally{input.value='';input.disabled=false;if(save)save.disabled=false;}
 }
 function wireForms(){
+ document.querySelectorAll('[data-enquiry-status]').forEach(select=>select.onchange=()=>updateEnquiryStatus(select));
+
  const galleryFiles=$('galleryBulkFile');
  if(galleryFiles)galleryFiles.onchange=()=>{addGalleryDrafts(Array.from(galleryFiles.files||[]));galleryFiles.value='';};
  const gallerySave=$('galleryBulkSave');
@@ -453,6 +503,7 @@ document.addEventListener('click',event=>{
 });
 async function doAction(action){
  if(action==='copyLink'){try{await navigator.clipboard.writeText(shopUrl());flash('Shop link copied');}catch(e){flash('Copy unavailable in this browser',true)}return;}
+ if(action==='retry-enquiries'){enquiryError='';enquiryLoaded=false;render();return;}
  if(action==='nav-status'){navigateTo('status');return;}
  if(action==='nav-settings'){navigateTo('settings');return;}
  if(action==='import-template'){downloadProductTemplate();return;}
