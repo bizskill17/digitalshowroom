@@ -37,7 +37,7 @@ New shop registrations create Seller accounts only. You can create a **separate 
    Keep the token private and do not commit it.
 2. GitHub repository → Settings → Secrets and variables → Actions → New repository secret. Name: `ADMIN_SETUP_TOKEN`. Value: generated token.
 3. Trigger a **new deployment** after adding the secret (Actions → Deploy Digital Showroom to Hostinger → Run workflow), since old runs do not automatically gain the new secret.
-4. Open `https://showroom.bizskilledu.com/admin-setup.html`. Enter the same token, a **new** Admin name/email, and strong password (at least 12 characters).
+4. Open `https://showroom.bizskilledu.com/admin-setup.html`. Enter the same token, a **new** Admin name/email, and password (minimum 4 characters; a longer password is strongly recommended).
 5. The application creates a separate `ds_users` row with role `admin`, without creating or modifying a shop. It checks for existing admins while holding a database lock, and **closes setup** once an Admin account exists.
 6. Use `/admin-login.html` to sign in. Seller login stays separate.
 
