@@ -1,7 +1,7 @@
 /* Digital Showroom Share Kit — local QRCodeJS + browser Canvas, no network QR service. */
 (function(){
  'use strict';
- const state={shop:null,url:'',generation:0,qr:null};
+ const state={shop:null,url:'',csrf:'',generation:0,qr:null};
  const $=id=>document.getElementById(id);
  const colors=['#E83F7E','#1D4ED8','#0F766E','#6D28D9','#9A3412','#334155'];
  const accent=()=>colors.includes(String(state.shop?.theme_color||'').toUpperCase())?state.shop.theme_color:'#E83F7E';
@@ -34,6 +34,16 @@
   const scale=Math.min(size/width,size/height);
   ctx.drawImage(img,x+(size-width*scale)/2,y+(size-height*scale)/2,width*scale,height*scale);
  }
+ function cover(ctx,img,x,y,w,h){
+  if(!img)return;
+  const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
+  const ratio=Math.max(w/iw,h/ih),sw=w/ratio,sh=h/ratio;
+  ctx.drawImage(img,(iw-sw)/2,(ih-sh)/2,sw,sh,x,y,w,h);
+ }
+ async function savedImage(kind){
+  const source=kind==='poster'?state.shop?.poster_image_url:state.shop?.card_image_url;
+  return source?imageLoad(source):null;
+ }
  function drawQr(ctx,source,x,y,size){
   // Keep a full white quiet zone of at least 4 modules for reliable scanning.
   const pad=Math.round(size*0.075);
@@ -65,6 +75,8 @@
   const h=height/k;
   rect(ctx,0,0,1000,h,'#FFFFFF');
   rect(ctx,0,0,1000,405,accent());
+  const posterPhoto=await savedImage('poster');
+  if(posterPhoto){cover(ctx,posterPhoto,0,0,1000,405);ctx.fillStyle='rgba(13,27,48,0.60)';ctx.fillRect(0,0,1000,405);}
   const img=await imageLoad(state.shop.logo_url);
   if(img){rect(ctx,435,65,130,130,'#FFFFFF');try{logo(ctx,img,445,75,110);}catch(e){}}
   ctx.textAlign='center';
@@ -82,14 +94,16 @@
   const c=canvas(width,height),ctx=c.getContext('2d');const k=width/1200;ctx.scale(k,k);
   rect(ctx,0,0,1200,675,'#FFFFFF');rect(ctx,0,0,34,675,accent());
   rect(ctx,34,0,1166,125,accent());
+  const cardPhoto=await savedImage('card');
+  if(cardPhoto){cover(ctx,cardPhoto,580,160,232,352);}
   const img=await imageLoad(state.shop.logo_url);
   if(img){rect(ctx,77,159,126,126,'#FFFFFF');try{logo(ctx,img,85,167,110);}catch(e){}}
   txt(ctx,state.shop.name,80,71,1010,'bold 51px Arial','#FFFFFF');
-  txt(ctx,state.shop.tagline||'Visit Our Digital Showroom',80,335,690,'30px Arial','#304D6A');
-  txt(ctx,'WhatsApp: '+(state.shop.phone||''),80,413,690,'bold 32px Arial','#0A3359');
-  if(state.shop.address)txt(ctx,state.shop.address,80,477,700,'25px Arial','#47627E');
+  txt(ctx,state.shop.tagline||'Visit Our Digital Showroom',80,335,475,'30px Arial','#304D6A');
+  txt(ctx,'WhatsApp: '+(state.shop.phone||''),80,413,475,'bold 32px Arial','#0A3359');
+  if(state.shop.address)txt(ctx,state.shop.address,80,477,475,'25px Arial','#47627E');
   const urlLabel=state.url.length>53?state.url.slice(0,50)+'…':state.url;
-  txt(ctx,urlLabel,80,598,790,'25px Arial',accent());
+  txt(ctx,urlLabel,80,598,735,'25px Arial',accent());
   drawQr(ctx,qr,842,180,290);
   ctx.font='bold 24px Arial';ctx.fillStyle='#233F5A';ctx.textAlign='center';ctx.fillText('Scan to Shop',987,506);
   return c;
@@ -150,10 +164,57 @@
   }catch(e){const error=$('shareKitError');if(error){error.textContent=e.message||'Download failed';error.hidden=false;}}
   finally{button.disabled=false;button.textContent=previous;}
  }
+ function message(text){
+  const error=$('shareKitError');if(error){error.hidden=!text;error.textContent=text||'';}
+ }
+ async function saveImage(kind,url){
+  const response=await fetch('/api/app.php?action=sharekit-image',{
+   method:'POST',credentials:'same-origin',
+   headers:{'Content-Type':'application/json','X-CSRF-Token':state.csrf},
+   body:JSON.stringify({kind,image_url:url})
+  });
+  const result=await response.json();
+  if(!response.ok||!result.ok)throw Error(result.error||'Unable to save image');
+  state.shop[kind==='poster'?'poster_image_url':'card_image_url']=result.image_url;
+  await render();
+ }
+ function setupImageControls(kind){
+  const input=$('shareImage_'+kind),remove=$('shareRemove_'+kind);
+  if(!input||!remove)return;
+  const field=kind==='poster'?'poster_image_url':'card_image_url';
+  remove.disabled=!state.shop[field];
+  input.onchange=async()=>{
+   const file=input.files?.[0];input.value='';
+   if(!file)return;
+   if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5*1024*1024){
+    message('Choose a JPG, PNG or WebP image up to 5 MB.');return;
+   }
+   input.disabled=true;remove.disabled=true;message('');
+   try{
+    const payload=new FormData();payload.append('image',file);
+    const response=await fetch('/api/upload.php',{
+     method:'POST',credentials:'same-origin',
+     headers:{'X-CSRF-Token':state.csrf},body:payload
+    });
+    const result=await response.json();
+    if(!response.ok||!result.url)throw Error(result.error||'Image upload failed');
+    await saveImage(kind,result.url);
+   }catch(e){message(e.message||'Could not add image');}
+   finally{input.disabled=false;remove.disabled=!state.shop[field];}
+  };
+  remove.onclick=async()=>{
+   if(!state.shop[field])return;
+   input.disabled=true;remove.disabled=true;message('');
+   try{await saveImage(kind,'');}
+   catch(e){message(e.message||'Could not remove image');}
+   finally{input.disabled=false;remove.disabled=!state.shop[field];}
+  };
+ }
  window.ShareKit={
-  init(shop,url){
+  init(shop,url,csrf){
    if(!shop||!url)return;
-   state.shop=shop;state.url=url;state.qr=null;
+   state.shop=shop;state.url=url;state.csrf=csrf;state.qr=null;
+   setupImageControls('poster');setupImageControls('card');
    document.querySelectorAll('[data-share-download]').forEach(button=>{button.disabled=true;button.onclick=()=>generate(button.dataset.shareDownload,button);});
    const copy=$('shareCopyLink');if(copy)copy.onclick=async()=>{try{await navigator.clipboard.writeText(url);copy.textContent='Copied';setTimeout(()=>{if(copy.isConnected)copy.textContent='Copy Shop Link';},1700);}catch(e){const error=$('shareKitError');if(error){error.hidden=false;error.textContent='Copy is unavailable in this browser.';}}};
    const label=$('shareKitShopUrl');if(label)label.textContent=url;
