@@ -409,3 +409,12 @@ dialog.enquiry-delete-dialog .enquiry-delete-confirm{background:#d42b43!importan
 dialog.enquiry-delete-dialog .enquiry-delete-confirm:hover{background:#ae1e33!important;border-color:#ae1e33!important}
 dialog.enquiry-delete-dialog #enquiryDeleteCancel{background:#eef5ff;color:#1455af;border:1px solid #d5e5fb}
 @media(max-width:450px){dialog.enquiry-delete-dialog{padding:20px}dialog.enquiry-delete-dialog .enquiry-delete-actions .btn{flex:1}}
+
+/* Compact enquiry table: Actions immediately follows Customer, without a stretched final column. */
+.enquiry-inbox-panel .enquiry-table{width:max-content;min-width:860px;max-width:none;table-layout:auto}
+.enquiry-inbox-panel .enquiry-table th,.enquiry-inbox-panel .enquiry-table td{padding:10px 12px;white-space:nowrap}
+.enquiry-inbox-panel .enquiry-table th:nth-child(6),.enquiry-inbox-panel .enquiry-table td:nth-child(6){min-width:155px;max-width:220px}
+.enquiry-inbox-panel .enquiry-table th:last-child,.enquiry-inbox-panel .enquiry-table td.enquiry-action{text-align:left;padding-left:13px}
+.enquiry-inbox-panel .enquiry-table td.enquiry-action{min-width:90px}
+.enquiry-delete-heading{gap:0}
+@media(max-width:900px){.enquiry-inbox-panel .table-wrap{overflow-x:auto}}
