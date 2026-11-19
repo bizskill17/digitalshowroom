@@ -88,7 +88,7 @@ try{
    $q=$db->prepare('SELECT id,name,image_url FROM ds_categories WHERE shop_id=? ORDER BY id DESC');$q->execute([$shop['id']]);$cats=$q->fetchAll();
    $q=$db->prepare('SELECT id,category_id,name,description,price,image_url,unit,display_order FROM ds_products WHERE shop_id=? AND active=1 ORDER BY display_order ASC,id DESC');$q->execute([$shop['id']]);$products=$q->fetchAll();
    attachProductPhotos($products,productPhotoMap($db,(int)$shop['id']));
-   respond(['shop'=>$shop,'categories'=>$cats,'products'=>$products]);
+   respond(['shop'=>$shop,'categories'=>$cats,'products'=>$products,'csrf'=>$_SESSION['csrf']]);
   }
   $u=currentUser($db);if(!$u)respond(['error'=>'Please sign in'],401);
   if($action==='enquiries'){
