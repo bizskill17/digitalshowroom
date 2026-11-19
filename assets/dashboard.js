@@ -501,16 +501,16 @@ function statusPanel(){
 function adminDashboard(){
  const s=data.stats;return '<div class="stats">'+stat('Registered Sellers',s.sellers,'blue')+stat('Shops',s.shops,'green')+stat('Products',s.products,'amber')+stat('Free Product Limit',s.free_product_limit,'purple','Products per shop')+'</div><div class="columns"><div>'+adminShops()+'</div><div>'+panel('Subscriptions','<p class="muted">Paid subscriptions and Razorpay are planned for the next development phase.</p>')+'</div></div>';
 }
-function adminShops(){
+function adminShops(showHeading=true){
  const rows=data.shops.map(s=>'<tr><td>'+esc(s.owner)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.products)+'</td><td><span class="pill '+(!+s.active?'off':'')+'">'+(+s.active?'Active':'Disabled')+'</span></td><td>'+button(+s.active?'Disable':'Enable','status-'+s.id+'-'+(+s.active?0:1),'outline')+' <a target="_blank" class="btn sm soft" href="/'+encodeURIComponent(s.slug)+'">View</a></td></tr>').join('');
- return panel('Seller & Shop Management',wrapTable(['Seller','Shop','Products','Status','Actions'],rows));
+ return showHeading?panel('Seller & Shop Management',wrapTable(['Seller','Shop','Products','Status','Actions'],rows)):sellerPanel(wrapTable(['Seller','Shop','Products','Status','Actions'],rows));
 }
 let planRecords=[],plansLoaded=false,plansLoading=false,plansError='',planEditing=null;
 const planFeatureNames=[['analytics','Analytics'],['whatsapp_status','WhatsApp Status'],['catalogue_pdf','Catalogue PDF'],['remove_branding','Remove Showroom Branding']];
 function planText(value){return value===null||value===undefined?'Unlimited':String(value);}
 function adminPlans(){
- if(plansError)return panel('Subscription Plans','<div class="notice error">'+esc(plansError)+'</div>'+button('Retry','retry-plans','primary'));
- if(!plansLoaded)return panel('Subscription Plans','<p class="muted">Loading plans...</p>');
+ if(plansError)return sellerPanel('<div class="notice error">'+esc(plansError)+'</div>'+button('Retry','retry-plans','primary'));
+ if(!plansLoaded)return sellerPanel('<p class="muted">Loading plans...</p>');
  const rows=planRecords.map(p=>{
   const monthly=Number(p.monthly_price).toFixed(2),annual=Number(p.annual_price).toFixed(2);
   return '<tr><td><strong>'+esc(p.name)+'</strong></td>'+
@@ -519,7 +519,7 @@ function adminPlans(){
   '<td><button class="btn sm soft" type="button" data-edit-plan="'+Number(p.id)+'">Edit</button></td></tr>';
  }).join('');
  const table='<div class="table-wrap"><table class="data-table plan-master-table"><thead><tr><th>Plan</th><th>Monthly (₹)</th><th>Annual (₹)</th><th>Products</th><th>Catalogues</th><th>Status</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
- return '<section class="panel plan-master-panel"><div class="panel-head"><h2>Subscription Plans</h2><button class="btn primary" type="button" id="addPlan">+ Add Plan</button></div>'+table+'<dialog class="plan-editor-dialog" id="planEditorDialog" aria-labelledby="planEditorTitle"><div id="planEditorArea"></div></dialog></section>';
+ return '<section class="panel plan-master-panel"><div class="panel-head plan-master-actions"><button class="btn primary" type="button" id="addPlan">+ Add Plan</button></div>'+table+'<dialog class="plan-editor-dialog" id="planEditorDialog" aria-labelledby="planEditorTitle"><div id="planEditorArea"></div></dialog></section>';
 }
 function planEditor(id){
  const plan=id?planRecords.find(p=>Number(p.id)===Number(id)):null;
@@ -624,7 +624,7 @@ function render(){
  let html='',name='Dashboard';
  if(data.role==='admin'){
   if(view==='dashboard')html=adminDashboard();
-  else if(view==='shops'){name='Seller & Shop Management';html=adminShops();}
+  else if(view==='shops'){name='Seller & Shop Management';html=adminShops(false);}
   else if(view==='plans'){name='Subscription Plans';html=adminPlans();if(!plansLoaded&&!plansLoading&&!plansError)queueMicrotask(loadPlans);}
   else{ name='Payments';html=panel('Razorpay Payments','<p class="muted">Razorpay has not yet been integrated. No payment records are collected.</p>');}
  }else{
