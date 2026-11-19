@@ -23,6 +23,8 @@ jobs:
       - name: Validate application code
         run: |
           php -l api/app.php
+          php -l api/admin-setup.php
+          node --check assets/admin-setup.js
           php -l api/upload.php
           php -l api/db.php
           php -l api/health.php
@@ -42,6 +44,7 @@ jobs:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          ADMIN_SETUP_TOKEN: ${{ secrets.ADMIN_SETUP_TOKEN }}
         run: |
           python3 - <<'PY'
           import base64
@@ -65,6 +68,15 @@ jobs:
           file = Path('/tmp/showroom-db-config.php')
           file.write_text(config, encoding='utf-8')
           file.chmod(0o600)
+
+          import hashlib
+          setup_token = os.environ.get('ADMIN_SETUP_TOKEN', '')
+          if setup_token and len(setup_token) < 32:
+              raise SystemExit('ADMIN_SETUP_TOKEN must be at least 32 characters')
+          token_hash = hashlib.sha256(setup_token.encode('utf-8')).hexdigest() if setup_token else ''
+          setup_file = Path('/tmp/showroom-admin-setup-config.php')
+          setup_file.write_text("<?php\\nreturn '" + token_hash + "';\\n", encoding='utf-8')
+          setup_file.chmod(0o600)
           PY
 
       - name: Prepare private directory access restrictions
@@ -100,6 +112,7 @@ jobs:
           mkdir -f ./showroom-private
           put /tmp/showroom-private-htaccess -o ./showroom-private/.htaccess
           put /tmp/showroom-db-config.php -o ./showroom-private/db-config.php
+          put /tmp/showroom-admin-setup-config.php -o ./showroom-private/admin-setup-config.php
           mirror --reverse --verbose --only-newer --exclude-glob .git/ --exclude-glob .github/ --exclude-glob README.md --exclude-glob node_modules/ ./ ./
           bye
           LFTP
