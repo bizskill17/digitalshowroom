@@ -149,9 +149,13 @@ function analyticsDates(){
  return analyticsMode==='custom'?{from:analyticsCustomFrom,to:analyticsCustomTo}:{from:iso(start),to:iso(end)};
 }
 function analyticsPanel(){
- const filter='<div class="analytics-filters"><div class="field"><label for="analyticsRange">Period</label><select id="analyticsRange">'+
+ const dates=analyticsDates();
+ const filter='<div class="analytics-filter-bar">'+
+ '<div class="field"><label for="analyticsFrom">From Date</label><input type="date" id="analyticsFrom" value="'+esc(dates.from)+'"></div>'+
+ '<div class="field"><label for="analyticsTo">To Date</label><input type="date" id="analyticsTo" value="'+esc(dates.to)+'"></div>'+
+ '<div class="field"><label for="analyticsRange">Period</label><select id="analyticsRange">'+
  [['today','Today'],['7','Last 7 Days'],['30','Last 30 Days'],['custom','Custom Range']].map(([value,label])=>'<option value="'+value+'" '+(analyticsMode===value?'selected':'')+'>'+label+'</option>').join('')+'</select></div>'+
- (analyticsMode==='custom'?'<div class="field"><label for="analyticsFrom">From Date</label><input type="date" id="analyticsFrom" value="'+esc(analyticsCustomFrom)+'"></div><div class="field"><label for="analyticsTo">To Date</label><input type="date" id="analyticsTo" value="'+esc(analyticsCustomTo)+'"></div><button class="btn primary" type="button" id="analyticsApply">Apply</button>':'')+'</div>';
+ '<button class="btn soft analytics-clear" type="button" id="analyticsClear">Clear</button></div>';
  let body='';
  if(analyticsLoading)body='<p>Loading analytics...</p>';
  else if(analyticsError)body='<p class="notice error">'+esc(analyticsError)+'</p>';
@@ -186,14 +190,32 @@ async function fetchAnalytics(){
 function wireAnalytics(){
  const select=$('analyticsRange');
  if(select)select.onchange=()=>{
+  const previousDates=analyticsDates();
   analyticsMode=select.value;
   if(analyticsMode==='custom'){
-   const range=analyticsDates();if(!analyticsCustomFrom||!analyticsCustomTo){analyticsCustomFrom=analyticsResult?.from||range.from||'';analyticsCustomTo=analyticsResult?.to||range.to||'';}
-   analyticsResult=null;render();
-  }else{analyticsResult=null;fetchAnalytics();}
+   analyticsCustomFrom=previousDates.from;
+   analyticsCustomTo=previousDates.to;
+  }
+  analyticsResult=null;
+  fetchAnalytics();
  };
- const apply=$('analyticsApply');
- if(apply)apply.onclick=()=>{analyticsCustomFrom=$('analyticsFrom').value;analyticsCustomTo=$('analyticsTo').value;fetchAnalytics();};
+ const setCustomDates=()=>{
+  analyticsCustomFrom=$('analyticsFrom').value;
+  analyticsCustomTo=$('analyticsTo').value;
+  analyticsMode='custom';
+  analyticsResult=null;
+  fetchAnalytics();
+ };
+ for(const id of ['analyticsFrom','analyticsTo']){
+  const field=$(id);if(field)field.onchange=setCustomDates;
+ }
+ const clear=$('analyticsClear');
+ if(clear)clear.onclick=()=>{
+  analyticsMode='30';
+  analyticsCustomFrom='';analyticsCustomTo='';
+  analyticsResult=null;
+  fetchAnalytics();
+ };
 }
 function sellerDashboard(){
  const n=data.products.length,limit=data.free_product_limit;
