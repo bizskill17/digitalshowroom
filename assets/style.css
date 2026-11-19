@@ -159,3 +159,21 @@ input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0
 .enquiry-inbox-panel .enquiry-filter-bar{grid-template-columns:minmax(180px,1.7fr) repeat(2,minmax(125px,1fr)) minmax(140px,1fr) auto}
 @media(max-width:1150px){.enquiry-inbox-panel .enquiry-filter-bar{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:640px){.enquiry-inbox-panel .enquiry-filter-bar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Compact and consistent Seller module layout; Admin remains unchanged. */
+.app-main:has(.seller-panel) .app-header{margin-bottom:14px}
+.seller-panel{padding:16px 20px 18px}
+.seller-panel-actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin:0 0 12px}
+.seller-panel .form-grid>.field{min-width:0}
+.sidebar{scrollbar-width:none;-ms-overflow-style:none}
+.sidebar::-webkit-scrollbar{width:0;height:0}
+.sidebar .brand{margin-bottom:18px}
+.sidebar nav{gap:2px}
+.sidebar .side-link{padding-top:10px;padding-bottom:10px}
+@media(max-width:800px){
+ .app-main:has(.seller-panel) .app-header{margin-bottom:12px}
+ .seller-panel{padding:14px}
+ .seller-panel-actions{justify-content:flex-end;flex-wrap:wrap}
+ .sidebar{overflow-x:auto;overflow-y:visible}
+ .sidebar .side-link{padding-top:10px;padding-bottom:10px}
+}
