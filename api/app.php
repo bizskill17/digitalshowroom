@@ -41,6 +41,13 @@ function setup(PDO $db):void{
   try {$db->exec("ALTER TABLE ds_shops ADD COLUMN theme_color VARCHAR(7) NOT NULL DEFAULT '#E83F7E'");}
   catch(PDOException $e) {if(($e->errorInfo[1]??null)!==1060)throw $e;}
  }
+ // Preserve existing storefront appearance while allowing optional new themes.
+ $themeColumn=$db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ds_shops' AND COLUMN_NAME='theme_style'");
+ $themeColumn->execute();
+ if(!(int)$themeColumn->fetchColumn()){
+  try{$db->exec("ALTER TABLE ds_shops ADD COLUMN theme_style VARCHAR(20) NOT NULL DEFAULT 'classic'");}
+  catch(PDOException $e){if(($e->errorInfo[1]??null)!==1060)throw $e;}
+ }
  // Non-destructive, idempotent additions to existing product records.
  foreach ([
   'unit' => "ALTER TABLE ds_products ADD COLUMN unit VARCHAR(30) NOT NULL DEFAULT 'Piece'",
@@ -85,7 +92,7 @@ try{
  if($method==='GET'){
   if($action==='me'){respond(['user'=>currentUser($db),'csrf'=>$_SESSION['csrf'],'free_product_limit'=>quota($db)]);}
   if($action==='public'){
-   $slug=clean($_GET['slug']??'',90);$q=$db->prepare('SELECT id,slug,name,tagline,phone,address,logo_url,theme_color FROM ds_shops WHERE slug=? AND active=1');$q->execute([$slug]);$shop=$q->fetch();if(!$shop)respond(['error'=>'Shop not found'],404);
+   $slug=clean($_GET['slug']??'',90);$q=$db->prepare('SELECT id,slug,name,tagline,phone,address,logo_url,theme_color,theme_style FROM ds_shops WHERE slug=? AND active=1');$q->execute([$slug]);$shop=$q->fetch();if(!$shop)respond(['error'=>'Shop not found'],404);
    $q=$db->prepare('SELECT id,name,image_url FROM ds_categories WHERE shop_id=? ORDER BY id DESC');$q->execute([$shop['id']]);$cats=$q->fetchAll();
    $q=$db->prepare('SELECT id,category_id,name,description,price,image_url,unit,display_order FROM ds_products WHERE shop_id=? AND active=1 ORDER BY display_order ASC,id DESC');$q->execute([$shop['id']]);$products=$q->fetchAll();
    attachProductPhotos($products,productPhotoMap($db,(int)$shop['id']));
@@ -308,13 +315,15 @@ try{
   $palette=['#E83F7E','#1D4ED8','#0F766E','#6D28D9','#9A3412','#334155'];
   $theme=strtoupper(clean($d['theme_color']??'#E83F7E',7));
   if(!in_array($theme,$palette,true))respond(['error'=>'Choose a valid shop colour'],422);
+  $themeStyle=strtolower(clean($d['theme_style']??'classic',20));
+  if(!in_array($themeStyle,['classic','modern','minimal'],true))respond(['error'=>'Choose a valid showroom theme'],422);
   $ownerName=array_key_exists('owner_name',$d)?clean($d['owner_name'],150):$u['name'];
   if(!$ownerName)respond(['error'=>'Your Name is required'],422);
   if(!$name||strlen($phone)<10||strlen($phone)>15||($logo&&!preg_match('~^https?://~i',$logo)&&!str_starts_with($logo,'/uploads/')))respond(['error'=>'Enter valid shop details'],422);
   $db->beginTransaction();
   try{
-   $q=$db->prepare('UPDATE ds_shops SET name=?,tagline=?,phone=?,address=?,logo_url=?,theme_color=? WHERE id=? AND user_id=?');
-   $q->execute([$name,$tagline,$phone,$address,$logo,$theme,$sid,(int)$u['id']]);
+   $q=$db->prepare('UPDATE ds_shops SET name=?,tagline=?,phone=?,address=?,logo_url=?,theme_color=?,theme_style=? WHERE id=? AND user_id=?');
+   $q->execute([$name,$tagline,$phone,$address,$logo,$theme,$themeStyle,$sid,(int)$u['id']]);
    if($ownerName!==$u['name']){
     $q=$db->prepare('UPDATE ds_users SET name=? WHERE id=?');
     $q->execute([$ownerName,(int)$u['id']]);
