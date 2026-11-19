@@ -155,8 +155,8 @@ try{
   $totalValue=$hasUnknown?null:number_format($total,2,'.','');
   $name=trim((string)($d['customer_name']??''));
   $mobile=preg_replace('/\D/','',(string)($d['customer_mobile']??''));
-  if(mb_strlen($name)>120||strlen($mobile)>15)respond(['error'=>'Invalid customer contact details'],422);
-  if($mobile!==''&&(strlen($mobile)<10||strlen($mobile)>15))respond(['error'=>'Enter a valid mobile number'],422);
+  if($name===''||mb_strlen($name)>120)respond(['error'=>'Customer Name is required (maximum 120 characters)'],422);
+  if(!preg_match('/^[0-9]{10}$/',$mobile))respond(['error'=>'Enter a valid 10-digit mobile number'],422);
   $db->beginTransaction();
   try{
    $q=$db->prepare('INSERT INTO ds_enquiries(shop_id,kind,customer_name,customer_mobile,estimated_total) VALUES(?,?,?,?,?)');
