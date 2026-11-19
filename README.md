@@ -20,6 +20,7 @@ A multi-seller WhatsApp-first showroom application on Hostinger PHP/MySQL.
 - Product photo gallery: select multiple images at once, up to 6 per product, automatically compress uploaded product photos, choose the main image and show thumbnails on public shop pages; original product image URLs are preserved
 - Photo gallery entries live in `ds_product_images` and are included in `scripts/backup.php`
 - Excel-compatible CSV bulk product import under Seller → Products → Import Products: download the template, enter up to 100 products and preview before saving. Save as **CSV UTF-8** from Excel. CSV can include product name, an existing category, price or 'On Request', unit, description, display order, visibility. The import is all-or-nothing, checks quota and duplicate names, and never overwrites existing products. Photos are added later via Edit Product.
+- Mobile quick product entry shows photo, name and price first; optional fields appear under More Product Details. Seller → Products → From Gallery lets users select multiple photos and turn each photo into a separate product after reviewing name/category/price. Product allowance and duplicate-name checks apply; creation is transactional. Uploaded media files are retained even if a batch is rejected.
 - Dynamic public showroom, quantity selection, WhatsApp order/quotation message
 - Basic canvas-based product status image generation
 - Administrator dashboard: sellers/shops, enable/disable shops and global free product allowance
