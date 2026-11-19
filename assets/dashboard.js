@@ -519,7 +519,7 @@ function adminPlans(){
   '<td><button class="btn sm soft" type="button" data-edit-plan="'+Number(p.id)+'">Edit</button></td></tr>';
  }).join('');
  const table='<div class="table-wrap"><table class="data-table plan-master-table"><thead><tr><th>Plan</th><th>Monthly (₹)</th><th>Annual (₹)</th><th>Products</th><th>Catalogues</th><th>Status</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
- return '<section class="panel plan-master-panel"><div class="panel-head"><h2>Subscription Plans</h2><button class="btn primary" type="button" id="addPlan">+ Add Plan</button></div>'+table+'<div id="planEditorArea"></div></section>';
+ return '<section class="panel plan-master-panel"><div class="panel-head"><h2>Subscription Plans</h2><button class="btn primary" type="button" id="addPlan">+ Add Plan</button></div>'+table+'<dialog class="plan-editor-dialog" id="planEditorDialog" aria-labelledby="planEditorTitle"><div id="planEditorArea"></div></dialog></section>';
 }
 function planEditor(id){
  const plan=id?planRecords.find(p=>Number(p.id)===Number(id)):null;
@@ -529,22 +529,26 @@ function planEditor(id){
  const features=plan?.features||{analytics:true,whatsapp_status:true,catalogue_pdf:false,remove_branding:false};
  const checkbox=(name,label)=>'<label class="plan-feature"><input type="checkbox" data-plan-feature="'+name+'" '+(features[name]?'checked':'')+'>'+label+'</label>';
  const val=(value)=>esc(value===null||value===undefined?'':value);
- const form='<form id="planForm"><div class="panel-head"><h2>'+(editing?'Edit Plan':'Add Plan')+'</h2><button type="button" class="btn sm soft" id="cancelPlan">Cancel</button></div>'+
+ const form='<form id="planForm"><div class="panel-head"><h2 id="planEditorTitle">'+(editing?'Edit Plan':'Add Plan')+'</h2><button type="button" class="btn sm soft" id="cancelPlan">Cancel</button></div>'+
  '<div class="form-grid">'+
  '<div class="field"><label for="planName">Plan Name *</label><input id="planName" maxlength="100" required value="'+val(plan?.name)+'"></div>'+
- '<div class="field"><label for="planCode">Plan Code *</label><input id="planCode" maxlength="60" pattern="[a-z][a-z0-9-]+" required '+(editing?'readonly':'')+' value="'+val(plan?.code)+'"></div>'+
  '<div class="field"><label for="planMonthly">Monthly Price (₹) *</label><input id="planMonthly" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" required '+(free?'readonly':'')+' value="'+val(plan?.monthly_price??'0.00')+'"></div>'+
  '<div class="field"><label for="planAnnual">Annual Price (₹) *</label><input id="planAnnual" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" required '+(free?'readonly':'')+' value="'+val(plan?.annual_price??'0.00')+'"></div>'+
  '<div class="field"><label for="planProductLimit">Product Limit'+(free?' *':'')+'</label><input id="planProductLimit" inputmode="numeric" pattern="[0-9]+" '+(free?'required':'')+' value="'+val(plan?.product_limit)+'"></div>'+
  '<div class="field"><label for="planCatalogueLimit">Catalogue Limit</label><input id="planCatalogueLimit" inputmode="numeric" pattern="[0-9]+" value="'+val(plan?.catalogue_limit)+'"></div>'+
  '<div class="field"><label for="planSort">Display Order</label><input id="planSort" inputmode="numeric" pattern="[0-9]+" value="'+val(plan?.sort_order??30)+'" required></div>'+
- '<div class="field"><label for="planDescription">Description</label><input id="planDescription" maxlength="255" value="'+val(plan?.description)+'"></div>'+
+ 
  '</div><div class="plan-feature-head">Plan Features</div><div class="plan-feature-grid">'+planFeatureNames.map(([k,n])=>checkbox(k,n)).join('')+'</div>'+
  '<label class="plan-feature plan-active"><input type="checkbox" id="planActive" '+(free?'checked disabled':Number(plan?.active)?'checked':'')+'>Active</label>'+
  '<div class="plan-editor-actions"><button class="btn primary" type="submit" id="planSave">Save Plan</button><span id="planMessage" role="alert" aria-live="polite"></span></div></form>';
- const area=$('planEditorArea');if(!area)return;area.innerHTML=form;area.scrollIntoView({block:'nearest'});
- $('cancelPlan').onclick=()=>{planEditing=null;area.replaceChildren();};
+ const dialog=$('planEditorDialog'),area=$('planEditorArea');if(!dialog||!area)return;
+ area.innerHTML=form;
+ $('cancelPlan').onclick=()=>dialog.close();
+ dialog.onclose=()=>{planEditing=null;area.replaceChildren();};
  $('planForm').onsubmit=savePlan;
+ if(typeof dialog.showModal==='function')dialog.showModal();
+ else dialog.setAttribute('open','');
+ $('planName')?.focus();
 }
 async function savePlan(event){
  event.preventDefault();
@@ -552,7 +556,7 @@ async function savePlan(event){
  if(!form||!save)return;
  const free=planEditing?.code==='free';
  const features=Object.fromEntries(planFeatureNames.map(([key])=>[key,!!form.querySelector('[data-plan-feature="'+key+'"]')?.checked]));
- const payload={id:Number(planEditing?.id||0),name:$('planName').value.trim(),code:$('planCode').value.trim().toLowerCase(),monthly_price:$('planMonthly').value.trim(),annual_price:$('planAnnual').value.trim(),product_limit:$('planProductLimit').value.trim(),catalogue_limit:$('planCatalogueLimit').value.trim(),sort_order:$('planSort').value.trim(),description:$('planDescription').value.trim(),features,active:free||$('planActive').checked};
+ const payload={id:Number(planEditing?.id||0),name:$('planName').value.trim(),code:planEditing?.code||'',monthly_price:$('planMonthly').value.trim(),annual_price:$('planAnnual').value.trim(),product_limit:$('planProductLimit').value.trim(),catalogue_limit:$('planCatalogueLimit').value.trim(),sort_order:$('planSort').value.trim(),description:planEditing?.description||'',features,active:free||$('planActive').checked};
  save.disabled=true;save.textContent='Saving...';msg.textContent='';
  try{
   await api('plan-save',payload);
