@@ -48,13 +48,6 @@ function setup(PDO $db):void{
   try{$db->exec("ALTER TABLE ds_shops ADD COLUMN theme_style VARCHAR(20) NOT NULL DEFAULT 'classic'");}
   catch(PDOException $e){if(($e->errorInfo[1]??null)!==1060)throw $e;}
  }
- $shareColumns=$db->query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ds_shops' AND COLUMN_NAME IN ('poster_image_url','card_image_url')")->fetchAll(PDO::FETCH_COLUMN);
- foreach(['poster_image_url','card_image_url'] as $column){
-  if(!in_array($column,$shareColumns,true)){
-   try{$db->exec("ALTER TABLE ds_shops ADD COLUMN $column VARCHAR(500) NOT NULL DEFAULT ''");}
-   catch(PDOException $e){if(($e->errorInfo[1]??null)!==1060)throw $e;}
-  }
- }
  // Non-destructive, idempotent additions to existing product records.
  foreach ([
   'unit' => "ALTER TABLE ds_products ADD COLUMN unit VARCHAR(30) NOT NULL DEFAULT 'Piece'",
@@ -336,21 +329,6 @@ try{
    $db->commit();
   }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
   respond(['ok'=>true,'owner_name'=>$ownerName]);
- }
- if($action==='sharekit-image'){
-  $kind=(string)($d['kind']??'');
-  if(!in_array($kind,['poster','card'],true))respond(['error'=>'Invalid image type'],422);
-  $url=clean($d['image_url']??'',500);
-  if($url!==''){
-   $expected='/uploads/'.$sid.'/';
-   if(!str_starts_with($url,$expected)||!preg_match('~^/uploads/[0-9]+/[a-f0-9]{32}\.(?:jpg|png|webp)$~',$url))respond(['error'=>'Choose an image uploaded for your own shop'],422);
-   $path=dirname(__DIR__).$url;
-   if(!is_file($path))respond(['error'=>'Uploaded image not found'],422);
-  }
-  $column=$kind==='poster'?'poster_image_url':'card_image_url';
-  $q=$db->prepare("UPDATE ds_shops SET $column=? WHERE id=? AND user_id=?");
-  $q->execute([$url,$sid,(int)$u['id']]);
-  respond(['ok'=>true,'kind'=>$kind,'image_url'=>$url]);
  }
  if($action==='category-save'){
   $name=clean($d['name']??'',120);$id=(int)($d['id']??0);
