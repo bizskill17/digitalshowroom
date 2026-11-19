@@ -40,6 +40,17 @@ before production deployment. Confirm both the new URL and the existing
 - Figures start from deployment of event tracking; historical showroom views cannot be reconstructed. Customer names, mobile numbers and IP addresses are not added to the analytics event table.
 - `ds_analytics_events` is included in the existing CLI-only database backup process.
 
+## Phase 3 — Admin Subscription Plan Master
+
+The existing Admin → Subscription Plans page now manages subscription plan definitions (Free and Pro seeded automatically, plus optional additional plan codes). Only logged-in administrators can read or change plan definitions.
+
+- Edit plan name, description, monthly/annual INR prices, product/catalogue limits (blank means unlimited), order, and supported feature flags.
+- Activate/deactivate paid plan definitions from their Edit form. The Free plan stays active with ₹0 prices and a required numeric product limit.
+- The Free plan's Product Limit starts from the existing `ds_settings.free_product_limit`, without resetting it. Editing Free product allowance synchronizes that old setting so existing quota enforcement continues to work; old Admin Settings writes also synchronize the plan.
+- Pro initially has no prices entered by the owner (₹0 placeholders) and is **inactive**. No upgrade, payment collection, subscription assignment, expiry, feature gating, or Razorpay integration is activated by this step.
+- The `ds_subscription_plans` table is included in the private CLI database backup.
+- Existing Seller accounts and products are not modified or deleted.
+
 ## Functional features
 - Seller registration and login with hashed passwords, session authentication and CSRF checks
 - One shop per registered seller; public link using a unique slug
@@ -86,7 +97,7 @@ If you already have an Admin account, the setup page cannot create another one. 
 - Database contents and uploads should be backed up separately; deployment does not provide database backups.
 
 ## Not implemented yet
-- Razorpay payments, paid subscription activation/renewals and per-shop plan limits
+- Razorpay payments, paid subscription activation/renewals and per-shop plan enforcement (Admin Plan Master definitions are implemented)
 - A full media library, native `.xlsx` parsing and bulk creation of separate product records directly from mobile gallery (CSV product import and multiple photos for one product are supported)
 - Password reset/email verification, registration throttling and audit logs
 - Advanced catalogue PDF/ZIP generation in the new dashboard (the original demo remains at `/demo.html`)
