@@ -146,7 +146,7 @@ function generateStatus(){
   if(p.image_url){const img=new Image();img.crossOrigin='anonymous';img.onload=()=>{try{ctx.drawImage(img,50,200,700,530)}catch(e){}try{finish()}catch(e){flash('This image host prevents download. Use an image from a CORS-enabled host.',true)}};img.onerror=finish;img.src=p.image_url;}else finish();
  });
 }
-$('logout').onclick=async()=>{try{await api('logout',{});}finally{location.href='/login.html';}};
+$('logout').onclick=async()=>{const destination=user?.role==='admin'?'/admin-login.html':'/login.html';try{await api('logout',{});}finally{location.href=destination;}};
 async function initializeDashboard(){
  try{
   const d=await api('me');
