@@ -20,6 +20,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Validate application code
+        run: |
+          php -l api/app.php
+          php -l api/db.php
+          php -l api/health.php
+          node --check assets/login.js
+          node --check assets/dashboard.js
+          node --check assets/shop.js
+
       - name: Install FTPS client
         run: |
           sudo apt-get update -qq
