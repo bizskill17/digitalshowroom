@@ -1,7 +1,7 @@
 
 const $=id=>document.getElementById(id);
 let csrf='',user=null,data=null,view='dashboard';
-const sellerViews=['dashboard','profile','categories','products','catalogues','enquiries','status','public','subscription'];
+const sellerViews=['dashboard','profile','categories','products','catalogues','enquiries','analytics','status','public','subscription'];
 const adminViews=['dashboard','shops','settings','plans','payments'];
 function getViewFromUrl(){const key=decodeURIComponent(location.hash.slice(1));return (user?.role==='admin'?adminViews:sellerViews).includes(key)?key:'dashboard';}
 function navigateTo(next){view=next;if(location.hash!=='#'+next)history.pushState(null,'','#'+next);render();}
@@ -12,7 +12,7 @@ const api=async(action,payload)=>{let res=await fetch('/api/app.php?action='+enc
 function updateSidebarAccount(){if(!user)return;$('userName').textContent=user.name;const initials=user.name.trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();$('userInitials').textContent=initials||'U';$('userRole').textContent=user.role==='admin'?'Admin':'Seller';}
 function flash(message,bad=false){$('flash').innerHTML='<div class="notice '+(bad?'error':'success')+'">'+esc(message)+'</div>';setTimeout(()=>{$('flash').innerHTML='';},6000)}
 const button=(name,fn,cls='soft')=>'<button class="btn sm '+cls+'" data-do="'+esc(fn)+'">'+esc(name)+'</button>';
-function nav(){const menus=data.role==='admin'?[['dashboard','Dashboard'],['shops','Seller & Shop Management'],['settings','Platform Settings'],['plans','Subscription Plans'],['payments','Payments']]:[['dashboard','Dashboard'],['profile','Shop Profile'],['categories','Product Categories'],['products','Products'],['catalogues','Catalogues'],['enquiries','Enquiry Inbox'],['status','WhatsApp Status'],['public','Public Showroom'],['subscription','Subscription']];$('sideNav').innerHTML=menus.map(([id,label])=>'<button class="side-link '+(view===id?'active':'')+'" data-nav="'+id+'">'+label+'</button>').join('');document.querySelectorAll('[data-nav]').forEach(n=>n.onclick=()=>navigateTo(n.dataset.nav));}
+function nav(){const menus=data.role==='admin'?[['dashboard','Dashboard'],['shops','Seller & Shop Management'],['settings','Platform Settings'],['plans','Subscription Plans'],['payments','Payments']]:[['dashboard','Dashboard'],['profile','Shop Profile'],['categories','Product Categories'],['products','Products'],['catalogues','Catalogues'],['enquiries','Enquiry Inbox'],['analytics','Analytics'],['status','WhatsApp Status'],['public','Public Showroom'],['subscription','Subscription']];$('sideNav').innerHTML=menus.map(([id,label])=>'<button class="side-link '+(view===id?'active':'')+'" data-nav="'+id+'">'+label+'</button>').join('');document.querySelectorAll('[data-nav]').forEach(n=>n.onclick=()=>navigateTo(n.dataset.nav));}
 function title(t){$('pageTitle').textContent=t;}
 function stat(name,value,klass='blue',hint=''){return '<div class="stat '+klass+'"><span>'+esc(name)+'</span><b>'+esc(value)+'</b><small>'+esc(hint)+'</small></div>'}
 function tdActions(edit,del){return '<div class="inline-actions">'+button('Edit',edit)+button('Delete',del,'danger')+'</div>'}
@@ -138,6 +138,63 @@ async function updateEnquiryStatus(select){
   const entry=enquiryRecords.find(item=>Number(item.id)===id);
   if(entry)select.value=entry.status;
  }finally{select.disabled=false;}
+}
+let analyticsLoading=false,analyticsResult=null,analyticsError='',analyticsMode='30',analyticsCustomFrom='',analyticsCustomTo='';
+function analyticsDates(){
+ const now=new Date(),end=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ const start=new Date(end);
+ if(analyticsMode==='7')start.setDate(start.getDate()-6);
+ else if(analyticsMode==='30')start.setDate(start.getDate()-29);
+ const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+ return analyticsMode==='custom'?{from:analyticsCustomFrom,to:analyticsCustomTo}:{from:iso(start),to:iso(end)};
+}
+function analyticsPanel(){
+ const filter='<div class="analytics-filters"><div class="field"><label for="analyticsRange">Period</label><select id="analyticsRange">'+
+ [['today','Today'],['7','Last 7 Days'],['30','Last 30 Days'],['custom','Custom Range']].map(([value,label])=>'<option value="'+value+'" '+(analyticsMode===value?'selected':'')+'>'+label+'</option>').join('')+'</select></div>'+
+ (analyticsMode==='custom'?'<div class="field"><label for="analyticsFrom">From Date</label><input type="date" id="analyticsFrom" value="'+esc(analyticsCustomFrom)+'"></div><div class="field"><label for="analyticsTo">To Date</label><input type="date" id="analyticsTo" value="'+esc(analyticsCustomTo)+'"></div><button class="btn primary" type="button" id="analyticsApply">Apply</button>':'')+'</div>';
+ let body='';
+ if(analyticsLoading)body='<p>Loading analytics...</p>';
+ else if(analyticsError)body='<p class="notice error">'+esc(analyticsError)+'</p>';
+ else if(!analyticsResult)body='<p>No analytics available yet.</p>';
+ else{
+  const a=analyticsResult,st=a.stats||{};
+  body='<div class="analytics-metrics">'+[
+   ['Showroom Views',st.visit||0],['WhatsApp Clicks',st.whatsapp_click||0],['Product Views',st.product_view||0],['Enquiries',st.enquiries||0]
+  ].map(([name,count])=>'<div class="analytics-metric"><span>'+name+'</span><strong>'+Number(count)+'</strong></div>').join('')+'</div>';
+  const views=(a.top_views||[]).map((p,i)=>'<tr><td>'+String(i+1)+'</td><td>'+esc(p.product_name)+'</td><td>'+Number(p.views)+'</td></tr>').join('');
+  const enquiries=(a.top_enquiries||[]).map((p,i)=>'<tr><td>'+String(i+1)+'</td><td>'+esc(p.product_name)+'</td><td>'+Number(p.enquiries)+'</td></tr>').join('');
+  body+='<div class="analytics-tables"><div><h3>Most-Viewed Products</h3>'+wrapTable(['#','Product','Views'],views)+'</div><div><h3>Most-Enquired Products</h3>'+wrapTable(['#','Product','Enquiries'],enquiries)+'</div></div>';
+  const series=a.trend||[];
+  if(series.length)body+='<div class="analytics-trend"><h3>Daily Showroom Views</h3>'+wrapTable(['Date','Views','WhatsApp Clicks'],series.map(p=>'<tr><td>'+esc(formatEnquiryDate(p.date))+'</td><td>'+Number(p.visit||0)+'</td><td>'+Number(p.whatsapp_click||0)+'</td></tr>').join(''))+'</div>';
+  body+='<p class="analytics-footnote">Views are recorded per browser session. Product views count when products appear on screen. WhatsApp clicks indicate an initiated action, not a delivered message. Analytics started when tracking was enabled.</p>';
+ }
+ return '<section class="panel seller-panel analytics-panel">'+filter+body+'</section>';
+}
+async function fetchAnalytics(){
+ const dates=analyticsDates();
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(dates.from)||!/^\d{4}-\d{2}-\d{2}$/.test(dates.to)){
+  analyticsError='Choose both dates.';analyticsResult=null;render();return;
+ }
+ if(dates.from>dates.to){analyticsError='From Date must not be after To Date.';analyticsResult=null;render();return;}
+ analyticsLoading=true;analyticsError='';render();
+ try{
+  const r=await fetch('/api/app.php?action=analytics&from='+encodeURIComponent(dates.from)+'&to='+encodeURIComponent(dates.to),{credentials:'same-origin'});
+  const result=await r.json();if(!r.ok)throw Error(result.error||'Analytics unavailable');
+  analyticsResult=result;
+ }catch(e){analyticsError=e.message;analyticsResult=null;}
+ finally{analyticsLoading=false;if(view==='analytics')render();}
+}
+function wireAnalytics(){
+ const select=$('analyticsRange');
+ if(select)select.onchange=()=>{
+  analyticsMode=select.value;
+  if(analyticsMode==='custom'){
+   const range=analyticsDates();if(!analyticsCustomFrom||!analyticsCustomTo){analyticsCustomFrom=analyticsResult?.from||range.from||'';analyticsCustomTo=analyticsResult?.to||range.to||'';}
+   analyticsResult=null;render();
+  }else{analyticsResult=null;fetchAnalytics();}
+ };
+ const apply=$('analyticsApply');
+ if(apply)apply.onclick=()=>{analyticsCustomFrom=$('analyticsFrom').value;analyticsCustomTo=$('analyticsTo').value;fetchAnalytics();};
 }
 function sellerDashboard(){
  const n=data.products.length,limit=data.free_product_limit;
@@ -417,6 +474,7 @@ function render(){
   if(view==='categories'){name='Product Categories';html=categoryPanel();}
   if(view==='catalogues'){name='Catalogues';html=cataloguesPanel();}
   if(view==='enquiries'){name='Enquiry Inbox';html=enquiryPanel();if(!enquiryLoaded&&!enquiryLoading&&!enquiryError)queueMicrotask(loadEnquiries);}
+  if(view==='analytics'){name='Analytics';html=analyticsPanel();if(!analyticsResult&&!analyticsLoading&&!analyticsError&&analyticsMode!=='custom')queueMicrotask(fetchAnalytics);}
   if(view==='status'){name='WhatsApp Status';html=statusPanel();}
   if(view==='public'){name='Public Showroom';html=panel('Share Your Shop','<div class="preview-link">'+esc(shopUrl())+'</div><p>'+button('Copy Link','copyLink')+' <a class="btn sm primary" href="'+esc(shopUrl())+'" target="_blank">Open Showroom ↗</a></p>');}
   if(view==='subscription'){
@@ -516,6 +574,8 @@ async function uploadProductPhotos(input){
  }finally{input.value='';input.disabled=false;if(save)save.disabled=false;}
 }
 function wireForms(){
+ if(view==='analytics')wireAnalytics();
+
  if(view==='enquiries')wireEnquiryFilters();
 
  const galleryFiles=$('galleryBulkFile');
