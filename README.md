@@ -31,6 +31,15 @@ before production deployment. Confirm both the new URL and the existing
 - Public posting requires a session CSRF token; selected products and prices are re-validated against active products for the requested shop. There is a lightweight per-session click limit. Production-grade IP/risk throttling and optional buyer-contact capture remain future improvements.
 - Enquiry tables `ds_enquiries` and `ds_enquiry_items` are included in the backup script. Existing products and shops are not modified by this feature.
 
+## Phase 2 — Showroom Analytics
+
+- Seller → Analytics supports Today, Last 7 Days, Last 30 Days and Custom Range (up to 366 days).
+- MySQL event table `ds_analytics_events` records showroom visits, on-screen product views and taps on WhatsApp enquiry buttons.
+- Visits are counted once per shop and browser session; product views once per product and browser session. WhatsApp clicks count attempts to start a conversation, **not** sent/delivered WhatsApp messages.
+- Seller analytics are restricted to their own shop. Shows event totals, total enquiries, top-viewed products, top-enquired products and daily event counts.
+- Figures start from deployment of event tracking; historical showroom views cannot be reconstructed. Customer names, mobile numbers and IP addresses are not added to the analytics event table.
+- `ds_analytics_events` is included in the existing CLI-only database backup process.
+
 ## Functional features
 - Seller registration and login with hashed passwords, session authentication and CSRF checks
 - One shop per registered seller; public link using a unique slug
