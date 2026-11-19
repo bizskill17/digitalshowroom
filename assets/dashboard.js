@@ -6,7 +6,7 @@ const api=async(action,payload)=>{let res=await fetch('/api/app.php?action='+enc
 function flash(message,bad=false){$('flash').innerHTML='<div class="notice '+(bad?'error':'success')+'">'+esc(message)+'</div>';setTimeout(()=>{$('flash').innerHTML='';},6000)}
 const button=(name,fn,cls='soft')=>'<button class="btn sm '+cls+'" data-do="'+esc(fn)+'">'+esc(name)+'</button>';
 function nav(){const menus=data.role==='admin'?[['dashboard','Dashboard'],['shops','Seller & Shop Management'],['settings','Platform Settings'],['plans','Subscription Plans'],['payments','Payments (Future)']]:[['dashboard','Dashboard'],['profile','Shop Profile'],['categories','Product Categories'],['products','Products'],['catalogues','Catalogues'],['status','WhatsApp Status'],['public','Public Showroom'],['subscription','Subscription']];$('sideNav').innerHTML=menus.map(([id,label])=>'<button class="side-link '+(view===id?'active':'')+'" data-nav="'+id+'">'+label+'</button>').join('');document.querySelectorAll('[data-nav]').forEach(n=>n.onclick=()=>{view=n.dataset.nav;render();});}
-function title(t,caption='Manage your Digital Showroom'){$('pageTitle').textContent=t;$('pageCaption').textContent=caption;}
+function title(t){$('pageTitle').textContent=t;}
 function stat(name,value,klass='blue',hint=''){return '<div class="stat '+klass+'"><span>'+esc(name)+'</span><b>'+esc(value)+'</b><small>'+esc(hint)+'</small></div>'}
 function tdActions(edit,del){return '<div class="inline-actions">'+button('Edit',edit)+button('Delete',del,'danger')+'</div>'}
 function panel(heading,inside,extra=''){return '<section class="panel"><div class="panel-head"><h2>'+heading+'</h2>'+extra+'</div>'+inside+'</section>'}
