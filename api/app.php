@@ -95,14 +95,20 @@ try{
   if($action==='analytics'){
    if($u['role']!=='seller')respond(['error'=>'Seller access required'],403);
    $shop=shopFor($db,(int)$u['id']);$sid=(int)$shop['id'];
-   $from=(string)($_GET['from']??'');$to=(string)($_GET['to']??'');
-   foreach([$from,$to] as $date){
+   $requestedFrom=(string)($_GET['from']??'');$requestedTo=(string)($_GET['to']??'');
+   foreach([$requestedFrom,$requestedTo] as $date){
+    if($date==='')continue;
     $parsed=DateTimeImmutable::createFromFormat('!Y-m-d',$date);
     if(!$parsed||$parsed->format('Y-m-d')!==$date)respond(['error'=>'Invalid analytics date'],422);
    }
-   if($from>$to)respond(['error'=>'From Date must not be after To Date'],422);
-   $days=(new DateTimeImmutable($from))->diff(new DateTimeImmutable($to))->days;
-   if($days>365)respond(['error'=>'Select a date range of up to 366 days'],422);
+   if($requestedFrom!==''&&$requestedTo!==''&&$requestedFrom>$requestedTo)respond(['error'=>'From Date must not be after To Date'],422);
+   if($requestedFrom!==''&&$requestedTo!==''){
+    $days=(new DateTimeImmutable($requestedFrom))->diff(new DateTimeImmutable($requestedTo))->days;
+    if($days>365)respond(['error'=>'Select a date range of up to 366 days'],422);
+   }
+   // Empty filters represent all available history for this shop.
+   $from=$requestedFrom?:'1970-01-01';
+   $to=$requestedTo?:date('Y-m-d');
    $end=(new DateTimeImmutable($to))->modify('+1 day')->format('Y-m-d');
    $stats=['visit'=>0,'product_view'=>0,'whatsapp_click'=>0];
    $q=$db->prepare('SELECT event_type,COUNT(*) total FROM ds_analytics_events WHERE shop_id=? AND created_at>=? AND created_at<? GROUP BY event_type');
@@ -117,7 +123,7 @@ try{
    $q->execute([$sid,$from,$end]);$topEnquiries=$q->fetchAll();
    $q=$db->prepare('SELECT COUNT(*) FROM ds_enquiries WHERE shop_id=? AND created_at>=? AND created_at<?');
    $q->execute([$sid,$from,$end]);$stats['enquiries']=(int)$q->fetchColumn();
-   respond(['stats'=>$stats,'trend'=>array_values($trend),'top_views'=>$topViews,'top_enquiries'=>$topEnquiries,'from'=>$from,'to'=>$to]);
+   respond(['stats'=>$stats,'trend'=>array_values($trend),'top_views'=>$topViews,'top_enquiries'=>$topEnquiries,'from'=>$requestedFrom,'to'=>$requestedTo]);
   }
   if($action==='enquiries'){
    if($u['role']!=='seller')respond(['error'=>'Seller access required'],403);
