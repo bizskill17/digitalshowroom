@@ -28,6 +28,7 @@ function setup(PDO $db):void{
  $db->exec("CREATE TABLE IF NOT EXISTS ds_products (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,shop_id BIGINT UNSIGNED NOT NULL,category_id BIGINT UNSIGNED NULL,name VARCHAR(180) NOT NULL,description TEXT NOT NULL,price DECIMAL(12,2) NULL,image_url TEXT NULL,active TINYINT NOT NULL DEFAULT 1,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,INDEX(shop_id),INDEX(category_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("CREATE TABLE IF NOT EXISTS ds_catalogues (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,shop_id BIGINT UNSIGNED NOT NULL,name VARCHAR(130) NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,INDEX(shop_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("CREATE TABLE IF NOT EXISTS ds_catalogue_products (catalogue_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NOT NULL,PRIMARY KEY(catalogue_id,product_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+ $db->exec("CREATE TABLE IF NOT EXISTS ds_product_images (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,shop_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NOT NULL,image_url VARCHAR(500) NOT NULL,display_order INT UNSIGNED NOT NULL DEFAULT 0,UNIQUE KEY product_image_unique (product_id,image_url),INDEX(shop_id,product_id,display_order)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("CREATE TABLE IF NOT EXISTS ds_settings (setting_key VARCHAR(80) PRIMARY KEY,setting_value VARCHAR(255) NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
  $db->exec("INSERT IGNORE INTO ds_settings(setting_key,setting_value) VALUES ('free_product_limit','5')");
  // Add a per-shop brand colour without changing existing shop records.
@@ -53,6 +54,22 @@ function setup(PDO $db):void{
   }
  }
 }
+function productPhotoMap(PDO $db,int $shopId):array{
+ $q=$db->prepare('SELECT product_id,image_url FROM ds_product_images WHERE shop_id=? ORDER BY display_order,id');
+ $q->execute([$shopId]);
+ $grouped=[];
+ foreach($q->fetchAll() as $image)$grouped[(int)$image['product_id']][]=$image['image_url'];
+ return $grouped;
+}
+function attachProductPhotos(array &$products,array $photos):void{
+ foreach($products as &$product){
+  $gallery=$photos[(int)$product['id']]??[];
+  $primary=(string)($product['image_url']??'');
+  if($primary!=='')array_unshift($gallery,$primary);
+  $product['images']=array_values(array_unique($gallery));
+ }
+ unset($product);
+}
 function quota(PDO $db):int{return max(0,(int)$db->query("SELECT setting_value FROM ds_settings WHERE setting_key='free_product_limit'")->fetchColumn());}
 function belongs(PDO $db,string $table,int $id,int $shop):bool{
  if(!in_array($table,['ds_products','ds_categories','ds_catalogues'],true))return false;
@@ -67,8 +84,9 @@ try{
   if($action==='public'){
    $slug=clean($_GET['slug']??'',90);$q=$db->prepare('SELECT id,slug,name,tagline,phone,address,logo_url,theme_color FROM ds_shops WHERE slug=? AND active=1');$q->execute([$slug]);$shop=$q->fetch();if(!$shop)respond(['error'=>'Shop not found'],404);
    $q=$db->prepare('SELECT id,name,image_url FROM ds_categories WHERE shop_id=? ORDER BY id DESC');$q->execute([$shop['id']]);$cats=$q->fetchAll();
-   $q=$db->prepare('SELECT id,category_id,name,description,price,image_url,unit,display_order FROM ds_products WHERE shop_id=? AND active=1 ORDER BY display_order ASC,id DESC');$q->execute([$shop['id']]);
-   respond(['shop'=>$shop,'categories'=>$cats,'products'=>$q->fetchAll()]);
+   $q=$db->prepare('SELECT id,category_id,name,description,price,image_url,unit,display_order FROM ds_products WHERE shop_id=? AND active=1 ORDER BY display_order ASC,id DESC');$q->execute([$shop['id']]);$products=$q->fetchAll();
+   attachProductPhotos($products,productPhotoMap($db,(int)$shop['id']));
+   respond(['shop'=>$shop,'categories'=>$cats,'products'=>$products]);
   }
   $u=currentUser($db);if(!$u)respond(['error'=>'Please sign in'],401);
   if($action==='dashboard'){
@@ -80,6 +98,7 @@ try{
    $shop=shopFor($db,(int)$u['id']);
    $q=$db->prepare('SELECT * FROM ds_categories WHERE shop_id=? ORDER BY id DESC');$q->execute([$shop['id']]);$categories=$q->fetchAll();
    $q=$db->prepare('SELECT * FROM ds_products WHERE shop_id=? ORDER BY display_order ASC,id DESC');$q->execute([$shop['id']]);$products=$q->fetchAll();
+   attachProductPhotos($products,productPhotoMap($db,(int)$shop['id']));
    $q=$db->prepare('SELECT * FROM ds_catalogues WHERE shop_id=? ORDER BY id DESC');$q->execute([$shop['id']]);$catalogues=$q->fetchAll();
    $q=$db->prepare('SELECT cp.catalogue_id,cp.product_id FROM ds_catalogue_products cp JOIN ds_catalogues c ON c.id=cp.catalogue_id WHERE c.shop_id=?');$q->execute([$shop['id']]);
    respond(['role'=>'seller','shop'=>$shop,'categories'=>$categories,'products'=>$products,'catalogues'=>$catalogues,'catalogue_products'=>$q->fetchAll(),'free_product_limit'=>quota($db)]);
@@ -201,6 +220,25 @@ try{
   if(!$name||($img&&!preg_match('~^https?://~i',$img)&&!str_starts_with($img,'/uploads/')))respond(['error'=>'Valid product name and image required'],422);
   if($cat&&!belongs($db,'ds_categories',$cat,$sid))respond(['error'=>'Invalid category'],422);
   if($price===''||$price===null)$price=null;elseif(!is_numeric($price)||(float)$price<0||(float)$price>9999999999)respond(['error'=>'Invalid price'],422);else $price=number_format((float)$price,2,'.','');
+  $submittedImages=$d['images']??null;
+  if($submittedImages!==null){
+   if(!is_array($submittedImages)||count($submittedImages)>6)respond(['error'=>'You can save up to 6 photos per product'],422);
+   $images=[];
+   foreach($submittedImages as $url){
+    if(!is_string($url)||strlen($url)>500)respond(['error'=>'Invalid product image'],422);
+    $url=trim($url);
+    if($url==='')continue;
+    $isLocal=(bool)preg_match('~^/uploads/'.preg_quote((string)$sid,'~').'/[a-f0-9]{32}\\.(?:jpg|png|webp)$~',$url);
+    // Historical primary photos can be external URLs; do not invalidate existing product images.
+    $isPreviousPrimary=false;
+    if($id){$existingPhoto=$db->prepare('SELECT image_url FROM ds_products WHERE id=? AND shop_id=?');$existingPhoto->execute([$id,$sid]);$isPreviousPrimary=$url===(string)$existingPhoto->fetchColumn();}
+    if(!$isLocal&&!$isPreviousPrimary)respond(['error'=>'Choose photos uploaded to your own shop'],422);
+    if(!in_array($url,$images,true))$images[]=$url;
+   }
+   if(count($images)>6)respond(['error'=>'You can save up to 6 photos per product'],422);
+   $img=$images[0]??'';
+  }else{$images=null;}
+
   if($id){if(!belongs($db,'ds_products',$id,$sid))respond(['error'=>'Product not found'],404);
    $q=$db->prepare('UPDATE ds_products SET name=?,description=?,category_id=?,price=?,image_url=?,active=?,unit=?,display_order=? WHERE id=?');$q->execute([$name,$desc,$cat?:null,$price,$img,$active,$unit,$order,$id]);
   }else{
@@ -209,14 +247,25 @@ try{
     $db->query('SELECT setting_value FROM ds_settings WHERE setting_key="free_product_limit" FOR UPDATE')->fetchColumn();
     $q=$db->prepare('SELECT COUNT(*) FROM ds_products WHERE shop_id=?');$q->execute([$sid]);
     if((int)$q->fetchColumn()>=quota($db)){$db->rollBack();respond(['error'=>'Free product allowance reached. Contact the administrator for more capacity.'],403);}
-    $q=$db->prepare('INSERT INTO ds_products(shop_id,category_id,name,description,price,image_url,active,unit,display_order) VALUES(?,?,?,?,?,?,?,?,?)');$q->execute([$sid,$cat?:null,$name,$desc,$price,$img,$active,$unit,$order]);$db->commit();
+    $q=$db->prepare('INSERT INTO ds_products(shop_id,category_id,name,description,price,image_url,active,unit,display_order) VALUES(?,?,?,?,?,?,?,?,?)');$q->execute([$sid,$cat?:null,$name,$desc,$price,$img,$active,$unit,$order]);
+    $id=(int)$db->lastInsertId();$db->commit();
+   }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+  }
+  if($images!==null){
+   // Replace only this product's gallery metadata. Uploaded files are never deleted here.
+   $db->beginTransaction();
+   try{
+    $db->prepare('DELETE FROM ds_product_images WHERE product_id=? AND shop_id=?')->execute([$id,$sid]);
+    $q=$db->prepare('INSERT INTO ds_product_images(shop_id,product_id,image_url,display_order) VALUES(?,?,?,?)');
+    foreach($images as $index=>$url)$q->execute([$sid,$id,$url,$index]);
+    $db->commit();
    }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
   }
   respond(['ok'=>true]);
  }
  if($action==='product-delete'){
   $id=(int)($d['id']??0);if(!belongs($db,'ds_products',$id,$sid))respond(['error'=>'Not found'],404);
-  $db->prepare('DELETE FROM ds_catalogue_products WHERE product_id=?')->execute([$id]);$db->prepare('DELETE FROM ds_products WHERE id=?')->execute([$id]);respond(['ok'=>true]);
+  $db->prepare('DELETE FROM ds_catalogue_products WHERE product_id=?')->execute([$id]);$db->prepare('DELETE FROM ds_product_images WHERE product_id=? AND shop_id=?')->execute([$id,$sid]);$db->prepare('DELETE FROM ds_products WHERE id=?')->execute([$id]);respond(['ok'=>true]);
  }
  if($action==='catalogue-save'){
   $id=(int)($d['id']??0);$name=clean($d['name']??'',130);$productIds=array_unique(array_map('intval',is_array($d['product_ids']??null)?$d['product_ids']:[]));
