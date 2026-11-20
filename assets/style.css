@@ -711,3 +711,19 @@ body.nav-no-anim .app-shell>.sidebar{transition:none!important}
  margin:0 0 8px;
  background:rgba(255,255,255,.19);
 }
+
+/* Share Kit */
+.share-kit-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:22px 0}
+.share-kit-tab{padding:20px 10px;text-align:center;min-height:72px;background:#f7faff;border:1px solid #dbe5f3;border-radius:14px;color:#17365b;font:700 14px Arial,sans-serif;cursor:pointer}
+.share-kit-tab.active{background:#eaf3ff;border:2px solid #1263d5;color:#0b51ae}
+.share-kit-workspace{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);gap:22px;align-items:start}
+.share-kit-config,.share-kit-output{border:1px solid #dbe4f1;background:#fff;border-radius:16px;padding:22px;min-width:0}
+.share-kit-config{display:grid;gap:17px}
+.share-kit-check{display:flex;align-items:center;gap:10px;font-size:14px;color:#20344c;cursor:pointer}
+.share-kit-check input{width:18px;height:18px;accent-color:#0862d4}
+.share-kit-preview{display:flex;align-items:center;justify-content:center;min-height:250px;background:#edf3fa;border-radius:12px;padding:18px;overflow:hidden}
+.share-kit-preview-image{width:auto;max-width:100%;max-height:590px;object-fit:contain;box-shadow:0 8px 24px #0b316228}
+.share-kit-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+#shareKitMessage{margin-top:12px}
+@media(max-width:1080px){.share-kit-workspace{grid-template-columns:1fr}}
+@media(max-width:720px){.share-kit-tabs{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.share-kit-tab{min-height:58px;padding:12px 8px}.share-kit-config,.share-kit-output{padding:14px}.share-kit-preview{padding:10px}.share-kit-preview-image{max-height:450px}}
