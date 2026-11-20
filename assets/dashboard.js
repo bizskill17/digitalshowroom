@@ -537,8 +537,8 @@ function statusPanel(){
 }
 function adminDashboard(){
  const s=data.stats;
- const shops=adminShops().replace('<h2>Seller & Shop Management</h2>','<h2><a class="dashboard-section-link" href="#shops">Seller & Shop Management <span aria-hidden="true">↗</span></a></h2>');
- const plans=panel('Subscriptions','<p class="muted">Paid subscriptions and Razorpay are planned for the next development phase.</p>').replace('<h2>Subscriptions</h2>','<h2><a class="dashboard-section-link" href="#plans">Subscriptions <span aria-hidden="true">↗</span></a></h2>');
+ const shops=adminShops();
+ const plans=panel('Subscriptions','<p class="muted">Paid subscriptions and Razorpay are planned for the next development phase.</p>');
  return '<div class="stats">'+statLink('Registered Sellers',s.sellers,'blue','','shops')+statLink('Shops',s.shops,'green','','shops')+statLink('Products',s.products,'amber','','shops')+statLink('Free Product Limit',s.free_product_limit,'purple','','plans')+'</div><div class="columns"><div>'+shops+'</div><div>'+plans+'</div></div>';
 }
 function adminShops(showHeading=true){
