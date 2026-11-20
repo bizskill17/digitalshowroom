@@ -71,7 +71,7 @@ function enquiryMatches(e){
 }
 function enquiryTableRows(){
  const filtered=enquiryRecords.filter(enquiryMatches);
- $('enquiryResultCount').textContent=filtered.length+' of '+enquiryRecords.length+' enquiries';
+ $('enquiryResultCount').textContent=enquiryRecords.length?filtered.length+' of '+enquiryRecords.length+' enquiries':'';
  const tbody=$('enquiryTableBody');
  if(!tbody)return;
  if(!filtered.length){tbody.innerHTML='<tr><td colspan="6" class="placeholder">No matching enquiries.</td></tr>';return;}
