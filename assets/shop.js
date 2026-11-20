@@ -48,10 +48,13 @@ function render(){
  $('filter').innerHTML='<button type="button" class="'+(!category?'active':'')+'" data-category="0">All Products</button>'+data.categories.map(c=>'<button type="button" class="'+(category==c.id?'active':'')+'" data-category="'+Number(c.id)+'">'+esc(c.name)+'</button>').join('');
  const shown=data.products.filter(p=>(!category||p.category_id==category)&&(!searchTerm||[p.name,p.description].some(v=>String(v||'').toLocaleLowerCase().includes(searchTerm))));
  const countNode=$('productCount');if(countNode)countNode.textContent=shown.length+' product'+(shown.length===1?'':'s');
+ // Give smaller catalogues balanced card widths without changing larger storefront grids.
+ $('products').classList.toggle('shop-products-few',shown.length>0&&shown.length<=2);
+ $('products').classList.toggle('shop-products-single',shown.length===1);
  $('products').innerHTML=shown.length?shown.map(p=>{
   const qty=Number(cart[p.id]||0);
   const images=Array.isArray(p.images)&&p.images.length?p.images:(p.image_url?[p.image_url]:[]);
-  const picture=images.length?'<img class="product-main-photo" src="'+esc(images[0])+'" alt="'+esc(p.name)+'" loading="lazy">':'<div class="shop-product-placeholder" aria-hidden="true">▧</div>';
+  const picture=images.length?'<img class="product-main-photo" src="'+esc(images[0])+'" alt="'+esc(p.name)+'" loading="lazy">':'<div class="shop-product-placeholder" role="img" aria-label="No product photo available"><svg viewBox="0 0 64 64" width="58" height="58" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="16" width="48" height="36" rx="7"/><circle cx="32" cy="34" r="9"/><path d="M20 16l4-6h16l4 6"/></svg><span>No Photo Available</span></div>';
   const gallery=images.length>1?'<div class="shop-photo-thumbs">'+images.map((url,i)=>'<button type="button" class="shop-photo-thumb '+(!i?'selected':'')+'" data-image="'+esc(url)+'" aria-label="View photo '+(i+1)+' of '+esc(p.name)+'"><img src="'+esc(url)+'" alt="" loading="lazy"></button>').join('')+'</div>':'';
   const price=p.price===null?'On request':'₹'+Number(p.price).toFixed(2);
   return '<article class="product-card'+(qty?' product-selected':'')+'" data-product-view="'+Number(p.id)+'">'+
@@ -73,6 +76,13 @@ function render(){
  document.querySelectorAll('[data-inc]').forEach(button=>button.onclick=()=>{cart[button.dataset.inc]=(cart[button.dataset.inc]||0)+1;render();});
  document.querySelectorAll('[data-dec]').forEach(button=>button.onclick=()=>{cart[button.dataset.dec]=Math.max(0,(cart[button.dataset.dec]||0)-1);render();});
  count();observeProductViews();
+}
+// Keep the bottom action bar from hiding product controls on every screen size.
+const cartBar=document.querySelector('.shop-cart');
+if(cartBar&&typeof ResizeObserver!=='undefined'){
+ const adjust=()=>document.body.style.setProperty('--shop-cart-space',Math.ceil(cartBar.getBoundingClientRect().height+32)+'px');
+ new ResizeObserver(adjust).observe(cartBar);
+ adjust();
 }
 const searchInput=$('shopSearch');
 if(searchInput)searchInput.addEventListener('input',()=>{searchTerm=searchInput.value.trim().toLocaleLowerCase();if(data)render();});
