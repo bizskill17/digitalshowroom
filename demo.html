@@ -114,10 +114,79 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(-
 @media(max-width:600px){.wrap{padding-inline:16px}.bar .btn{flex:1;padding:0 8px;font-size:15px;gap:6px}.bar .sum{flex-basis:100%}.acts button{font-size:14px}}
 @media(max-width:420px){.grid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:no-preference){.card{animation:up .35s ease both}@keyframes up{from{opacity:0;transform:translateY(8px)}}}
+
+/* Modern public demo presentation, aligned with the actual seller showroom. */
+:root{color-scheme:light;--bg:#fff8fb;--card:#fff;--ink:#112848;--mute:#617188;--pink:#e83f7e;--pinkS:#fff0f5;--choc:#173253;--line:#f0dbe5}
+body{background:var(--bg);color:var(--ink);padding-bottom:120px}
+h1,h2,h3{font-family:"Nunito Sans",system-ui,sans-serif;letter-spacing:-.5px}
+.wrap{max-width:1450px;padding-inline:clamp(16px,5%,70px)}
+.saas{background:#fff;color:#132b49;border-bottom:1px solid #f0e5ed;box-shadow:0 1px 6px #071d3c0b}
+.saas .wrap{padding-block:13px;display:flex;gap:15px}
+.demo-brand{display:inline-flex;align-items:center;gap:10px;color:#112848;text-decoration:none}
+.demo-brand b{font-family:"Nunito Sans";font-size:18px;font-weight:800}
+.demo-mark{width:37px;height:37px;border-radius:10px;background:#0963de;color:white;display:grid;place-items:center;font-size:23px}
+.demo-label{font-size:12px;color:#637991;margin-left:auto}
+.demo-create{color:#e83f7e;font-size:13px;font-weight:800;text-decoration:none}
+.hero{background:#e83f7e}
+.hero .wrap{padding-block:20px;grid-template-columns:72px minmax(0,1fr) auto;gap:16px;min-height:110px}
+.hero .logo{width:68px;height:68px}
+.hero h1{font-size:clamp(27px,3.5vw,40px);letter-spacing:0}
+.hero p{font-size:14px;margin-top:5px}
+.tags{margin-top:8px}
+.tags span{font-size:11px;padding:3px 10px;background:#ffffff36}
+.link{grid-column:3;grid-row:1;background:#ffffff20;width:min(315px,27vw);padding:7px;border:1px solid #ffffff55}
+.link code{font-size:11px;color:white}
+.link .pill{min-height:34px;font-size:11px;padding:0 11px}
+.acts{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px}
+.acts button{min-height:35px;padding:6px 13px;border-width:1px;font-size:12px;border-radius:9px;width:auto}
+main.wrap{padding-top:28px;padding-bottom:36px}
+.cats{padding-top:0;padding-bottom:11px}
+.chip{border-width:1px;min-height:41px;padding:0 17px;color:#a72159;border-color:#f4b9d0;background:#fff}
+.chip[aria-pressed=true]{background:var(--pink);border-color:var(--pink);color:#fff}
+.tabs{max-width:450px;background:#fff0f5;padding:4px;margin:3px 0 22px}
+.tabs button{font-size:13px}
+.sec{align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:17px}
+.sec h2{font-size:27px;line-height:1.25}
+.sec small{font-size:12px}
+.demo-search{display:flex;align-items:center;gap:7px;background:white;border:1px solid #e9cbd7;border-radius:25px;padding:0 15px;min-height:44px;width:min(320px,100%);margin-left:auto}
+.demo-search span{font-size:27px;line-height:1;color:var(--pink)}
+.demo-search input{border:0;background:transparent;color:#132b49;min-width:0;width:100%;outline:none;font-size:14px}
+.demo-search:focus-within{outline:2px solid var(--pink);outline-offset:2px}
+.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:17px}
+.card{border:1px solid #f1e1e9;border-radius:17px;box-shadow:0 5px 18px #21172f0c}
+.demo-product-photo{padding:9px 9px 0;background:white}
+.demo-product-photo img{aspect-ratio:16/10;object-fit:contain;border-radius:10px;background:#fff0f5;width:100%}
+.card .cb{padding:13px 14px 15px;gap:7px}
+.cb h3{font-size:17px;line-height:1.25}
+.cb .d{font-size:12px}
+.card .row{flex-wrap:wrap;align-items:end;gap:12px}
+.pr{color:var(--pink);font-size:17px}
+.pr small{font-size:12px;color:#68798d}
+.add{background:var(--pink);min-height:37px;border-radius:9px;font-size:13px}
+.qty{background:#fff;border:1px solid #e5d3dd;border-radius:10px}
+.qty button{width:35px;height:36px}
+.demo-empty{grid-column:1/-1;border:1px dashed #edc2d1;padding:35px;text-align:center;border-radius:12px}
+.bar{background:#fff;border-color:#f1e5eb}
+.bar .wrap{min-height:74px;gap:12px;padding-block:10px;flex-wrap:nowrap}
+.demo-cart-info{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.demo-cart-icon{width:42px;height:42px;display:grid;place-items:center;background:#fff0f5;border-radius:50%;font-size:20px}
+.bar .sum{flex:1;line-height:1.35;color:#172d4d}
+.bar .sum small{font-size:12px;margin-top:3px}
+.bar .btn{font-size:13px;min-height:42px}
+.bar .wa{order:2;background:#119957}
+.bar .wa2{order:1;background:#fff4f8;color:var(--pink);border:1px solid var(--pink)}
+.note{font-size:12px}
+.status{background:#fff1f6}
+.panel,.pick,.setup li{border:1px solid #f1e1e9}
+@media(max-width:1000px){.hero .wrap{grid-template-columns:65px 1fr}.link{grid-column:1/-1;grid-row:auto;width:100%}.acts{justify-content:flex-start}}
+@media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero .wrap{padding-block:16px}.wrap{padding-inline:15px}.sec h2{font-size:24px}.demo-label{display:none}}
+@media(max-width:600px){body{padding-bottom:155px}.hero .logo{width:58px;height:58px}.hero h1{font-size:27px}.hero .wrap{gap:11px;grid-template-columns:58px 1fr}.tags{gap:5px}.acts{flex-wrap:wrap}.acts button{flex:1 1 auto}.sec{align-items:stretch}.demo-search{width:100%;max-width:none;margin:0}.bar .wrap{display:grid;grid-template-columns:1fr 1fr;gap:8px}.demo-cart-info{grid-column:1/-1}.bar .btn{min-width:0;font-size:12px;padding:8px;white-space:normal}.bar .wa{order:2}.bar .wa2{order:1}}
+@media(max-width:420px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.cb h3{font-size:14px}.card .cb{padding:9px}.card .d{font-size:11px}.pr{font-size:14px}.demo-create{font-size:11px}.saas .wrap{gap:8px}.hero h1{font-size:25px}}
+
 </style>
 </head>
 <body>
-<div class="saas"><div class="wrap"><span><b>Digital Showroom</b> · Create your Digital Showroom</span><span>Demo shop with sample prices</span></div></div>
+<div class="saas"><div class="wrap"><a href="/" class="demo-brand"><span class="demo-mark" aria-hidden="true">▣</span><b>Digital Showroom</b></a><span class="demo-label">Sample showroom · Illustrative prices</span><a class="demo-create" href="/login.html?register=1">Create Your Shop</a></div></div>
 
 <header class="hero"><div class="wrap">
   <svg class="logo" viewBox="0 0 80 80" aria-label="Bliss Bites logo"><circle cx="40" cy="40" r="38" fill="#fff"/><path d="M22 44h36l-5 18H27z" fill="#e8457c"/><ellipse cx="40" cy="42" rx="20" ry="7" fill="#3b2218"/><ellipse cx="40" cy="34" rx="15" ry="7" fill="#3b2218"/><ellipse cx="40" cy="27" rx="8" ry="5" fill="#3b2218"/><circle cx="42" cy="19" r="4" fill="#d62f4b"/></svg>
@@ -136,7 +205,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(-
   <p class="msg" id="aMsg" aria-live="polite"></p>
   <div class="cats" id="catalogues" role="group" aria-label="Catalogues"></div>
   <div class="tabs" role="tablist"><button role="tab" id="tP" aria-selected="true">Our Products</button><button role="tab" id="tC" aria-selected="false">Our Product Categories</button></div>
-  <div class="sec"><h2 id="vt">Our Products</h2><small id="vc"></small></div>
+  <div class="sec"><div><h2 id="vt">Our Products</h2><small id="vc"></small></div><label class="demo-search"><span aria-hidden="true">⌕</span><input type="search" id="productSearch" placeholder="Search products..." aria-label="Search demo products" autocomplete="off"></label></div>
   <div class="grid" id="view"></div>
   <p class="note">Sample shop built from Bliss Bites; prices are placeholders.</p>
 </main>
@@ -166,8 +235,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(-
 </div></section>
 
 <div class="bar"><div class="wrap">
-  <div class="sum" id="sum">No items selected<small>Tap Add on any product</small></div>
-  <a class="btn wa" id="waOrder" href="#"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.1.1.7-.1 1.3z"/></svg><span id="waOrderT">Send us these items</span></a>
+  <div class="demo-cart-info"><span class="demo-cart-icon" aria-hidden="true">🛒</span><div class="sum" id="sum">No items selected<small>Tap Add on any product</small></div></div>
+  <a class="btn wa" id="waOrder" href="#"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.1.1.7-.1 1.3z"/></svg><span id="waOrderT">Send Order on WhatsApp</span></a>
   <a class="btn wa2" id="waQuote" href="#">Get quotation</a>
 </div></div>
 
@@ -207,6 +276,7 @@ let items=base.slice();
 const shop='BLISS BITES',tag='Happiness, freshly delivered.',link='yourshowroom.link/blissbites',full='https://'+link;
 const sel={};let book='all',view='p',cf=null;let picks=new Set(items.map(i=>i.id));
 const $=id=>document.getElementById(id);
+let productSearchTerm='';
 const rs=n=>'₹'+n.toLocaleString('en-IN');
 const inBook=b=>items.filter(i=>i.in.includes(b));
 const phone=()=>($('num').value||'').replace(/\D/g,'');
@@ -222,9 +292,9 @@ function render(){
   $('vt').textContent='Our Product Categories';$('vc').textContent=cs.length+' categories';
   $('view').innerHTML=cs.map(c=>`<button class="card cat" data-c="${c.id}"><img src="${url(c.svg)}" alt=""><div class="cb"><h3>${c.name}</h3><span>${c.n} items</span></div></button>`).join('');
  }else{
-  const l=inBook(book).filter(i=>!cf||i.cat===cf);$('vt').textContent=cf?cats.find(c=>c.id===cf).name:'Our Products';
+  const l=inBook(book).filter(i=>(!cf||i.cat===cf)&&(!productSearchTerm||[i.name,i.d,cats.find(c=>c.id===i.cat)?.name].some(x=>String(x||'').toLowerCase().includes(productSearchTerm))));$('vt').textContent=cf?cats.find(c=>c.id===cf).name:'Our Products';
   $('vc').innerHTML=cf?`<button class="chip" data-clear style="min-height:36px">Show all</button>`:l.length+' items';
-  $('view').innerHTML=l.map(i=>`<article class="card"><img src="${url(i.svg)}" alt="${i.name}" loading="lazy"><div class="cb"><h3>${i.name}</h3><p class="d">${i.d}</p><div class="row"><span class="pr">${i.p?rs(i.p)+' <small>/ '+i.u+'</small>':'<small>Price on request</small>'}</span>${qty(i)}</div></div></article>`).join('');
+  $('view').innerHTML=l.length?l.map(i=>`<article class="card"><div class="demo-product-photo"><img src="${url(i.svg)}" alt="${i.name}" loading="lazy"></div><div class="cb"><h3>${i.name}</h3><p class="d">${i.d}</p><div class="row"><span class="pr">${i.p?rs(i.p)+' <small>/ '+i.u+'</small>':'<small>Price on request</small>'}</span>${qty(i)}</div></div></article>`).join(''):'<p class="demo-empty">No products match your search.</p>';
  }
  bar();picker();
 }
@@ -389,6 +459,7 @@ document.addEventListener('click',e=>{
  else if(t.id==='tP'){view='p';cf=null;render()}
  else if(t.id==='tC'){view='c';render()}
 });
+$('productSearch').addEventListener('input',e=>{productSearchTerm=e.target.value.trim().toLowerCase();if(productSearchTerm&&view!=='p'){view='p';}render()});
 $('plist').addEventListener('change',e=>{const id=e.target.dataset.pk;if(!id)return;e.target.checked?picks.add(id):picks.delete(id);picker()});
 $('pAll').addEventListener('click',()=>{inBook(book).forEach(i=>picks.add(i.id));picker()});
 $('pNone').addEventListener('click',()=>{inBook(book).forEach(i=>picks.delete(i.id));picker()});
