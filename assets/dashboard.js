@@ -33,7 +33,7 @@ function setupMobileNav(){
  window.addEventListener('resize',()=>{pauseAnim();if(window.innerWidth>800)closeMobileNav()});
 }
 setupMobileNav();
-function getViewFromUrl(){const key=decodeURIComponent(location.hash.slice(1));return (user?.role==='admin'?adminViews:sellerViews).includes(key)?key:'dashboard';}
+function getViewFromUrl(){const key=decodeURIComponent(location.hash.slice(1));if(key==='status'&&user?.role==='seller'){shareMode='status';return 'share';}return (user?.role==='admin'?adminViews:sellerViews).includes(key)?key:'dashboard';}
 function navigateTo(next){closeMobileNav();view=next;if(location.hash!=='#'+next)history.pushState(null,'','#'+next);render();}
 window.addEventListener('popstate',()=>{if(!data)return;view=getViewFromUrl();render();});
 window.addEventListener('hashchange',()=>{if(!data)return;const next=getViewFromUrl();if(next!==view){view=next;render();}});
