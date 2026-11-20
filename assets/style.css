@@ -622,3 +622,11 @@ a.stat-link:focus-visible{outline:3px solid #0a63dc;outline-offset:3px}
  .mobile-dashboard-brand{font-size:15px}
 }
 @media(prefers-reduced-motion:reduce){.app-shell>.sidebar{transition:none}}
+
+/* Mobile drawer close button (desktop hidden). */
+.mobile-nav-close{display:none}
+@media(max-width:800px){
+ .app-shell>.sidebar{padding-top:57px}
+ .mobile-nav-close{display:grid;place-items:center;position:absolute;right:12px;top:12px;width:34px;height:34px;background:#ffffff24;color:#fff;border:1px solid #ffffff55;border-radius:9px;font-size:25px;line-height:1}
+ .mobile-nav-close:focus-visible,.mobile-nav-toggle:focus-visible{outline:2px solid white;outline-offset:2px}
+}
