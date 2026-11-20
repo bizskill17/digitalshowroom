@@ -519,12 +519,11 @@ function adminPlans(){
   return '<tr><td><strong>'+esc(p.name)+'</strong></td>'+
   '<td>₹'+monthly+'</td><td>₹'+annual+'</td><td>'+esc(planText(p.product_limit))+'</td>'+
   '<td>'+esc(planText(p.catalogue_limit))+'</td><td><span class="pill '+(!Number(p.active)?'off':'')+'">'+(Number(p.active)?'Active':'Inactive')+'</span></td>'+
-  '<td><div class="inline-actions"><button class="btn sm soft" type="button" data-edit-plan="'+Number(p.id)+'">Edit</button>'+
- '<button class="btn sm danger plan-delete" type="button" data-delete-plan="'+Number(p.id)+'">Delete</button>'+'</div></td></tr>';
+  '<td><button class="btn sm soft" type="button" data-edit-plan="'+Number(p.id)+'">Edit</button></td></tr>';
  }).join('');
  const table='<div class="table-wrap"><table class="data-table plan-master-table"><thead><tr><th>Plan</th><th>Monthly (₹)</th><th>Annual (₹)</th><th>Products</th><th>Catalogues</th><th>Status</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
  return '<section class="panel plan-master-panel"><div class="panel-head plan-master-actions"><button class="btn primary" type="button" id="addPlan">+ Add Plan</button></div>'+table+'<dialog class="plan-editor-dialog" id="planEditorDialog" aria-labelledby="planEditorTitle"><div id="planEditorArea"></div></dialog>'+
- '<dialog class="plan-delete-dialog" id="planDeleteDialog" aria-labelledby="planDeleteTitle"><h2 id="planDeleteTitle">Delete Plan?</h2><p id="planDeleteMessage"></p><p class="plan-delete-warning">This action cannot be undone.</p><div class="plan-delete-actions"><button type="button" class="btn soft" id="cancelPlanDelete">Cancel</button><button type="button" class="btn danger" id="confirmPlanDelete">Delete Plan</button></div></dialog></section>';
+ '</section>';
 }
 function planEditor(id){
  const plan=id?planRecords.find(p=>Number(p.id)===Number(id)):null;
@@ -583,39 +582,6 @@ async function loadPlans(){
 function wirePlans(){
  const add=$('addPlan');if(add)add.onclick=()=>planEditor(0);
  document.querySelectorAll('[data-edit-plan]').forEach(btn=>btn.onclick=()=>planEditor(Number(btn.dataset.editPlan)));
- const dialog=$('planDeleteDialog'),cancel=$('cancelPlanDelete'),confirm=$('confirmPlanDelete');
- if(dialog&&cancel&&confirm){
-  cancel.onclick=()=>dialog.close();
-  dialog.onclose=()=>{pendingPlanDeleteId=0;confirm.disabled=false;confirm.textContent='Delete Plan';};
-  document.querySelectorAll('[data-delete-plan]').forEach(btn=>btn.onclick=()=>{
-   const plan=planRecords.find(p=>Number(p.id)===Number(btn.dataset.deletePlan));
-   if(!plan)return;
-   pendingPlanDeleteId=Number(plan.id);
-   const protectedPlan=['free','pro'].includes(plan.code);
-   $('planDeleteMessage').textContent=protectedPlan
-    ?plan.name+' is a built-in plan and cannot be deleted.'
-    :Number(plan.active)===1
-     ?'Deactivate "'+plan.name+'" before deleting this plan.'
-     :'Are you sure you want to delete "'+plan.name+'"?';
-   confirm.disabled=protectedPlan||Number(plan.active)===1;
-   confirm.textContent=protectedPlan?'Protected Plan':Number(plan.active)===1?'Deactivate Plan First':'Delete Plan';
-   dialog.showModal();
-  });
-  confirm.onclick=deletePlan;
- }
-}
-let pendingPlanDeleteId=0;
-async function deletePlan(){
- const id=pendingPlanDeleteId,button=$('confirmPlanDelete');
- if(!id||!button||button.disabled)return;
- button.disabled=true;button.textContent='Deleting...';
- try{
-  await api('plan-delete',{id});
-  $('planDeleteDialog')?.close();
-  pendingPlanDeleteId=0;plansLoaded=false;
-  await loadPlans();
-  flash('Plan deleted');
- }catch(e){const msg=$('planDeleteMessage');if(msg)msg.textContent=e.message||'Unable to delete plan';button.disabled=false;button.textContent='Delete Plan';}
 }
 let sellerSubscriptionData=null,sellerSubscriptionLoading=false,sellerSubscriptionError='';
 function subscriptionPrice(price,period){
