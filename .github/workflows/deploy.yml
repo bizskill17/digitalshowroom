@@ -138,7 +138,6 @@ jobs:
           put assets/share-kit.js -o ./assets/share-kit.js
           put assets/style.css -o ./assets/style.css
           # Remove only obsolete Share Kit code; never touch seller uploads or protected config.
-          rm -f ./assets/share-kit.js
           put dashboard.html -o ./dashboard.html
           # Ensure new friendly shop routes and public assets are not skipped by FTP timestamp differences.
           put .htaccess -o ./.htaccess
