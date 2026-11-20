@@ -27,7 +27,10 @@ function setupMobileNav(){
  backdrop.addEventListener('click',closeMobileNav);
  $('mobileNavClose')?.addEventListener('click',()=>{closeMobileNav();toggle.focus()});
  window.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileNav()});
- window.addEventListener('resize',()=>{if(window.innerWidth>800)closeMobileNav()});
+ let resizeTimer=0;
+ const pauseAnim=()=>{document.body.classList.add('nav-no-anim');clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>document.body.classList.remove('nav-no-anim'),300);};
+ pauseAnim();
+ window.addEventListener('resize',()=>{pauseAnim();if(window.innerWidth>800)closeMobileNav()});
 }
 setupMobileNav();
 function getViewFromUrl(){const key=decodeURIComponent(location.hash.slice(1));return (user?.role==='admin'?adminViews:sellerViews).includes(key)?key:'dashboard';}

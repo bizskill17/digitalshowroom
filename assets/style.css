@@ -631,3 +631,6 @@ a.stat-link:focus-visible{outline:3px solid #0a63dc;outline-offset:3px}
  .mobile-nav-close{display:grid;place-items:center;position:absolute;right:12px;top:16px;width:34px;height:34px;background:#ffffff24;color:#fff;border:1px solid #ffffff55;border-radius:9px;font-size:25px;line-height:1}
  .mobile-nav-close:focus-visible,.mobile-nav-toggle:focus-visible{outline:2px solid white;outline-offset:2px}
 }
+
+/* No drawer animation while the window is being resized (e.g. switching to mobile view). */
+body.nav-no-anim .app-shell>.sidebar{transition:none!important}
