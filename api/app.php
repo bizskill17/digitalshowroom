@@ -369,38 +369,6 @@ try{
    session_regenerate_id(true);
    respond(['ok'=>true,'message'=>'Password updated successfully.']);
   }
-  if($action==='plan-delete'){
-   $id=filter_var($d['id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
-   if($id===false||$id===null)respond(['error'=>'Invalid plan'],422);
-   $db->beginTransaction();
-   try{
-    $q=$db->prepare('SELECT id,code,active FROM ds_subscription_plans WHERE id=? FOR UPDATE');
-    $q->execute([$id]);$plan=$q->fetch(PDO::FETCH_ASSOC);
-    if(!$plan){$db->rollBack();respond(['error'=>'Plan not found'],404);}
-    if(in_array($plan['code'],['free','pro'],true)){
-     $db->rollBack();respond(['error'=>'Free and Pro are protected plans and cannot be deleted'],422);
-    }
-    if((int)$plan['active']===1){
-     $db->rollBack();respond(['error'=>'Deactivate the plan before deleting it'],422);
-    }
-    // Future subscription-assignment tables must not be orphaned by plan removal.
-    $refs=$db->prepare("SELECT TABLE_NAME,COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('ds_subscriptions','ds_seller_subscriptions','ds_shop_subscriptions','ds_subscription_payments') AND COLUMN_NAME IN ('plan_id','subscription_plan_id')");
-    $refs->execute();
-    foreach($refs->fetchAll(PDO::FETCH_ASSOC) as $ref){
-     $table=$ref['TABLE_NAME'];$col=$ref['COLUMN_NAME'];
-     $q=$db->prepare("SELECT COUNT(*) FROM `$table` WHERE `$col`=?");
-     $q->execute([$id]);
-     if((int)$q->fetchColumn()>0){
-      $db->rollBack();respond(['error'=>'Plan is linked to subscriptions or payments and cannot be deleted'],409);
-     }
-    }
-    $q=$db->prepare('DELETE FROM ds_subscription_plans WHERE id=? AND code NOT IN (\'free\',\'pro\') AND active=0');
-    $q->execute([$id]);
-    if($q->rowCount()!==1)throw new RuntimeException('Plan deletion failed');
-    $db->commit();
-   }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
-   respond(['ok'=>true]);
-  }
   if($action==='plan-save'){
    $id=filter_var($d['id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);
    $name=clean($d['name']??'',100);
