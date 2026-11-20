@@ -1,7 +1,7 @@
 
 const $=id=>document.getElementById(id);
-let csrf='',user=null,data=null,view='dashboard';
-const sellerViews=['dashboard','profile','categories','products','catalogues','enquiries','analytics','status','public','subscription'];
+let csrf='',user=null,data=null,view='dashboard',shareMode='poster';
+const sellerViews=['dashboard','profile','categories','products','catalogues','enquiries','analytics','share','public','subscription'];
 const adminViews=['dashboard','shops','plans','payments'];
 function closeMobileNav(){
  const sidebar=$('dashboardSidebar'),toggle=$('mobileNavToggle'),backdrop=$('mobileNavBackdrop');
@@ -51,6 +51,7 @@ function sidebarIcon(id){
   catalogues:'<path d="M12 7c-3-3-6-3-10-2v15c4-1 7-1 10 2 3-3 6-3 10-2V5c-4-1-7-1-10 2Z"/><path d="M12 7v15"/>',
   enquiries:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 7 9-7"/>',
   analytics:'<path d="M3 21h18"/><rect x="5" y="12" width="4" height="9"/><rect x="11" y="4" width="4" height="17"/><rect x="17" y="9" width="4" height="12"/>',
+  share:'<circle cx="6" cy="12" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="m8 11 8-5M8 13l8 5"/>',
   status:'<path d="M20 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.1-4.4A8.5 8.5 0 1 1 20 11.5Z"/><path d="M9 9c.3 2 2 4 4.5 5l1.5-1"/>',
   public:'<path d="M13 4h7v7"/><path d="m20 4-9 9"/><path d="M20 13v7H4V4h7"/>',
   subscription:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/>',
@@ -67,7 +68,7 @@ function nav(){
  $('dashboardSidebar').classList.toggle('admin-sidebar',!isSeller);
  const menus=data.role==='admin'
  ?[['dashboard','Dashboard'],['shops','Seller & Shop Management'],['plans','Subscription Plans'],['payments','Payments']]
- :[['dashboard','Dashboard'],['profile','Shop Profile'],['products','Products'],['categories','Categories'],['catalogues','Catalogues'],['enquiries','Enquiry Inbox'],['analytics','Analytics'],['status','WhatsApp Status'],['subscription','Subscription']];
+ :[['dashboard','Dashboard'],['profile','Shop Profile'],['products','Products'],['categories','Categories'],['catalogues','Catalogues'],['enquiries','Enquiry Inbox'],['analytics','Analytics'],['share','Share Kit'],['subscription','Subscription']];
  $('sideNav').innerHTML=menus.map(([id,label])=>'<button class="side-link '+(view===id?'active':'')+'" data-nav="'+id+'" '+(view===id?'aria-current="page"':'')+'>'+sidebarIcon(id)+'<span>'+label+'</span></button>').join('');
  document.querySelectorAll('[data-nav]').forEach(n=>n.onclick=()=>navigateTo(n.dataset.nav));
 }
@@ -533,6 +534,22 @@ function statusPanel(){
  '<div class="status-maker-toolbar"><button class="btn primary" type="button" id="statusGenerate" '+(!products.length?'disabled':'')+'>Generate Images</button><span id="statusGeneratorMessage" role="status" aria-live="polite"></span></div>'+
  '<div id="statusOutput" class="status-results"></div>');
 }
+function sharePanel(){
+ const modes=[['poster','QR Poster','qr-code'],['card','Business Card','id-card'],['social','Social Media Post','image'],['status','WhatsApp Status','message-circle']];
+ const tabs='<div class="share-kit-tabs">'+modes.map(([id,label])=>'<button type="button" data-do="share-'+id+'" class="share-kit-tab '+(shareMode===id?'active':'')+'">'+label+'</button>').join('')+'</div>';
+ if(shareMode==='status')return sellerPanel('<h2>Share Kit</h2><p class="muted">Create product status images using the existing WhatsApp Status Maker.</p>'+tabs+statusPanel());
+ const products=data.products.filter(p=>+p.active);
+ const choices=products.map(p=>'<option value="'+Number(p.id)+'">'+esc(p.name)+'</option>').join('');
+ const config='<div class="share-kit-config"><div class="field"><label for="shareKitStyle">Design Template</label><select id="shareKitStyle"><option value="classic">Classic</option><option value="modern">Modern</option><option value="minimal">Minimal</option></select></div>'+
+ '<div id="shareKitProductWrap" class="field" '+(shareMode==='social'?'':'hidden')+'><label for="shareKitProduct">Select Product</label><select id="shareKitProduct">'+choices+'</select></div>'+
+ '<label class="share-kit-check"><input id="shareKitLogo" type="checkbox" checked> Show Shop Logo</label>'+
+ '<label class="share-kit-check"><input id="shareKitTagline" type="checkbox" checked> Show Tagline</label>'+
+ '<label class="share-kit-check"><input id="shareKitPhone" type="checkbox" checked> Show WhatsApp Number</label>'+
+ '<p class="muted">Digital Showroom branding is included on Free designs.</p>'+
+ '<button type="button" class="btn primary" id="shareKitGenerate">Generate Preview</button></div>';
+ const preview='<div class="share-kit-output"><div class="share-kit-preview" id="shareKitPreview" aria-label="Promotional image preview"></div><div id="shareKitMessage" class="muted" role="status" aria-live="polite">Generating preview...</div><div class="share-kit-actions"><button type="button" id="shareKitDownload" class="btn primary">Download PNG</button><button type="button" id="shareKitPrint" class="btn soft">Print / Save PDF</button></div></div>';
+ return sellerPanel('<h2>Share Kit</h2><p class="muted">Create branded promotional materials for your showroom.</p>'+tabs+'<div class="share-kit-workspace">'+config+preview+'</div>');
+}
 function adminDashboard(){
  const s=data.stats;
  const shops=adminShops();
@@ -675,7 +692,7 @@ function render(){
   if(view==='catalogues'){name='Catalogues';html=cataloguesPanel();}
   if(view==='enquiries'){name='Enquiry Inbox';html=enquiryPanel();if(!enquiryLoaded&&!enquiryLoading&&!enquiryError)queueMicrotask(loadEnquiries);}
   if(view==='analytics'){name='Analytics';html=analyticsPanel();if(!analyticsResult&&!analyticsLoading&&!analyticsError)queueMicrotask(fetchAnalytics);}
-  if(view==='status'){name='WhatsApp Status';html=statusPanel();}
+  if(view==='share'){name='Share Kit';html=sharePanel();}
   if(view==='public'){name='Public Showroom';html=panel('Share Your Shop','<div class="preview-link">'+esc(shopUrl())+'</div><p>'+button('Copy Link','copyLink')+' <a class="btn sm primary" href="'+esc(shopUrl())+'" target="_blank">Open Showroom ↗</a></p>');}
   if(view==='subscription'){
    name='Subscription';html=sellerSubscriptionPanel();
@@ -771,7 +788,10 @@ async function uploadProductPhotos(input){
 }
 function wireForms(){
  if(view==='plans'&&data?.role==='admin')wirePlans();
- if(view==='status'&&window.StatusMaker)window.StatusMaker.init(data.shop,data.products);
+ if(view==='share'){
+  if(shareMode==='status'&&window.StatusMaker)window.StatusMaker.init(data.shop,data.products);
+  else if(window.ShareKit){window.ShareKit.select(shareMode);window.ShareKit.init(data.shop,data.products);}
+ }
  if(view==='analytics')wireAnalytics();
 
  if(view==='enquiries')wireEnquiryFilters();
@@ -851,7 +871,8 @@ document.addEventListener('click',event=>{
 async function doAction(action){
  if(action==='copyLink'){try{await navigator.clipboard.writeText(shopUrl());flash('Shop link copied');}catch(e){flash('Copy unavailable in this browser',true)}return;}
  if(action==='retry-enquiries'){enquiryError='';enquiryLoaded=false;render();return;}
- if(action==='nav-status'){navigateTo('status');return;}
+ if(action==='nav-status'){shareMode='status';navigateTo('share');return;}
+ if(action.startsWith('share-')){shareMode=action.slice(6);if(!['poster','card','social','status'].includes(shareMode))shareMode='poster';render();return;}
  if(action==='nav-plans'){navigateTo('plans');return;}
  if(action==='retry-plans'){plansError='';plansLoaded=false;render();return;}
  if(action==='retry-subscription'){sellerSubscriptionData=null;sellerSubscriptionError='';render();return;}
@@ -869,6 +890,7 @@ async function doAction(action){
  if(st){await post('shop-status',{id:+st[1],active:st[2]==='1'},'Shop status updated');return;}
  if(action==='generate-status'){generateStatus();return;}
 }
+window.showShareStatus=()=>{shareMode='status';render();};
 function generateStatus(){
  if(window.StatusMaker)window.StatusMaker.generate();
  else flash('Image generator is unavailable. Refresh the page.',true);
