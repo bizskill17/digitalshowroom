@@ -527,3 +527,15 @@ a.stat-link:focus-visible{outline:3px solid #0a63dc;outline-offset:3px}
  .shop-view .shop-cart .btn{min-width:0;padding:9px 7px;font-size:12px;min-height:40px;white-space:normal}
 }
 @media(prefers-reduced-motion:reduce){.shop-view .product-card{transition:none}.shop-view .product-card:hover{transform:none}}
+
+/* Use the new unified storefront layout even when an older theme value is saved. */
+.shop-view[data-shop-theme=modern] .shop-header,
+.shop-view[data-shop-theme=minimal] .shop-header{margin:0;width:100%;border-radius:0;background:var(--shop-accent);color:#fff;padding:26px clamp(16px,5%,72px);box-shadow:none;border:0}
+.shop-view[data-shop-theme=modern] .shop-filter button,
+.shop-view[data-shop-theme=minimal] .shop-filter button{border-radius:999px}
+.shop-view[data-shop-theme=minimal] .product-card{border-radius:17px;box-shadow:0 5px 18px rgba(35,23,47,.055);border-color:#f0e5ec}
+.shop-view[data-shop-theme=minimal] .shop-cart{box-shadow:0 -5px 22px #2512231c}
+@media(max-width:550px){
+ .shop-view[data-shop-theme=modern] .shop-header,
+ .shop-view[data-shop-theme=minimal] .shop-header{padding:16px}
+}
