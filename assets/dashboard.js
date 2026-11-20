@@ -25,6 +25,7 @@ function setupMobileNav(){
  if(!toggle||!backdrop)return;
  toggle.addEventListener('click',()=>document.getElementById('dashboardSidebar')?.classList.contains('mobile-nav-open')?closeMobileNav():openMobileNav());
  backdrop.addEventListener('click',closeMobileNav);
+ $('mobileNavClose')?.addEventListener('click',()=>{closeMobileNav();toggle.focus()});
  window.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileNav()});
  window.addEventListener('resize',()=>{if(window.innerWidth>800)closeMobileNav()});
 }
