@@ -705,3 +705,9 @@ body.nav-no-anim .app-shell>.sidebar{transition:none!important}
  outline:2px solid #8cecff;
  outline-offset:-2px;
 }
+
+.sidebar-divider {
+ flex:0 0 1px;
+ margin:0 0 8px;
+ background:rgba(255,255,255,.19);
+}
