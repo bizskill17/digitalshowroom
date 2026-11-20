@@ -58,7 +58,7 @@ async function draw(){
    if(photo){rect(x,80,220,920,575,24,'#ffffff');x.save();x.beginPath();x.roundRect(98,238,884,539,18);x.clip();crop(x,photo,98,238,884,539);x.restore();}
    else{rect(x,80,220,920,575,24,'#ffffff');text(x,'Explore our products',540,495,820,60,accent,800);}
    text(x,product?.name||'Explore our showroom',380,852,660,44,accent,800);
-   if(product){const price=product.price===null?'Price on request':'₹'+Number(product.price).toFixed(2);text(x,380,930,660,36,'#334155',700);}
+   if(product){const price=product.price===null?'Price on request':'₹'+Number(product.price).toFixed(2);text(x,price,380,930,660,36,'#334155',700);}
    rect(x,775,818,240,240,16,'#ffffff');x.drawImage(qr,791,835,208,208);
    if(state.phone&&shop.phone)text(x,'WhatsApp: '+shop.phone,355,1010,650,30,accent,700);
  }
@@ -74,7 +74,7 @@ function init(shop,products){state.shop=shop;state.products=products||[];state.p
  bind();draw().catch(e=>note(e.message,true));}
 function bind(){
  const tabButtons=document.querySelectorAll('[data-share-type]');
- for(const button of tabButtons)button.onclick=()=>{state.type=button.dataset.shareType;if(state.type==='status'){state.type='poster';if(typeof window.showShareStatus==='function')window.showShareStatus();return;}refresh();};
+ for(const button of tabButtons)button.onclick=()=>{state.type=button.dataset.shareType;if(state.type==='status'){if(typeof window.showShareStatus==='function')window.showShareStatus();return;}refresh();};
  const template=$('shareKitStyle');if(template)template.onchange=()=>{state.style=template.value;draw().catch(e=>note(e.message,true));};
  const product=$('shareKitProduct');if(product)product.onchange=()=>{state.product=product.value;draw().catch(e=>note(e.message,true));};
  for(const [id,key] of [['shareKitLogo','logo'],['shareKitPhone','phone'],['shareKitTagline','tagline']]){const e=$(id);if(e)e.onchange=()=>{state[key]=e.checked;draw().catch(err=>note(err.message,true));};}
