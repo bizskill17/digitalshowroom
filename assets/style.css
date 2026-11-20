@@ -635,22 +635,22 @@ a.stat-link:focus-visible{outline:3px solid #0a63dc;outline-offset:3px}
 /* No drawer animation while the window is being resized (e.g. switching to mobile view). */
 body.nav-no-anim .app-shell>.sidebar{transition:none!important}
 
-/* Seller navigation and showroom shortcut */
-.app-shell > .seller-sidebar {
+/* Shared Seller/Admin sidebar styling; showroom shortcut remains Seller-only. */
+.app-shell > .:is(.seller-sidebar,.admin-sidebar) {
  background:linear-gradient(165deg,#0c2d58,#071c37);
 }
-.seller-sidebar nav .side-link {
+.:is(.seller-sidebar,.admin-sidebar) nav .side-link {
  color:#d9e6f8;
 }
-.seller-sidebar nav .side-link:hover {
+.:is(.seller-sidebar,.admin-sidebar) nav .side-link:hover {
  background:#183c65;
  color:#fff;
 }
-.seller-sidebar nav .side-link.active {
+.:is(.seller-sidebar,.admin-sidebar) nav .side-link.active {
  background:#25568f;
  color:#fff;
 }
-.seller-sidebar nav .side-link.active::after {
+.:is(.seller-sidebar,.admin-sidebar) nav .side-link.active::after {
  content:"";
  width:7px;
  height:7px;
@@ -659,12 +659,12 @@ body.nav-no-anim .app-shell>.sidebar{transition:none!important}
  border-radius:50%;
  background:#5ce4ff;
 }
-.seller-sidebar .sidebar-account {
+.:is(.seller-sidebar,.admin-sidebar) .sidebar-account {
  display:grid;
  gap:10px;
  border-top:0;
 }
-.seller-sidebar .sidebar-showroom {
+.:is(.seller-sidebar,.admin-sidebar) .sidebar-showroom {
  display:flex;
  align-items:center;
  justify-content:center;
@@ -677,17 +677,17 @@ body.nav-no-anim .app-shell>.sidebar{transition:none!important}
  font-size:13px;
  font-weight:700;
 }
-.seller-sidebar .sidebar-showroom:hover {
+.:is(.seller-sidebar,.admin-sidebar) .sidebar-showroom:hover {
  background:#183c65;
 }
-.seller-sidebar .account-card {
+.:is(.seller-sidebar,.admin-sidebar) .account-card {
  background:#1a3658;
  color:#fff;
 }
-.seller-sidebar .account-avatar {
+.:is(.seller-sidebar,.admin-sidebar) .account-avatar {
  background:#0b2546;
 }
-.seller-sidebar .sidebar-logout {
+.:is(.seller-sidebar,.admin-sidebar) .sidebar-logout {
  width:auto;
  min-height:32px;
  justify-self:start;
@@ -697,11 +697,11 @@ body.nav-no-anim .app-shell>.sidebar{transition:none!important}
  color:#ff9ca6;
  text-align:left;
 }
-.seller-sidebar .sidebar-logout:hover {
+.:is(.seller-sidebar,.admin-sidebar) .sidebar-logout:hover {
  background:#ffffff14;
  color:#ffd0d5;
 }
-.seller-sidebar :is(.side-link,.sidebar-showroom,.sidebar-logout):focus-visible {
+.:is(.seller-sidebar,.admin-sidebar) :is(.side-link,.sidebar-showroom,.sidebar-logout):focus-visible {
  outline:2px solid #8cecff;
  outline-offset:-2px;
 }
