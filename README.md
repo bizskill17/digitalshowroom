@@ -57,7 +57,7 @@ Admin Subscription Plans now includes **Enquiry Inbox**, **Excel Product Import*
 
 These are **stored plan definitions only**. Subscription assignment, feature gating, paid upgrades, and all individual per-plan restrictions must be implemented and tested before launch; the current seller modules are not restricted by these new toggles.
 
-Custom plans can be deleted in Admin after they are deactivated and only if no known subscription/payment assignment tables reference them. Free and Pro cannot be deleted. Deletion is transactional and requires an on-screen confirmation; it does not delete sellers, shops, products, or uploads.
+Subscription plans are created and edited through Admin. Plan deletion is intentionally unavailable; existing plans and seller records are preserved.
 
 ## Phase 3 — Seller Subscription Page (read-only)
 
