@@ -64,6 +64,7 @@ function sidebarIcon(id){
 function nav(){
  const isSeller=data.role==='seller';
  $('dashboardSidebar').classList.toggle('seller-sidebar',isSeller);
+ $('dashboardSidebar').classList.toggle('admin-sidebar',!isSeller);
  const showroom=$('sidebarShowroom');
  showroom.hidden=!isSeller;
  if(isSeller)showroom.href=shopUrl();
