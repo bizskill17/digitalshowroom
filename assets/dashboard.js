@@ -62,9 +62,14 @@ function sidebarIcon(id){
  return '<svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(paths[id]||paths.dashboard)+'</svg>';
 }
 function nav(){
+ const isSeller=data.role==='seller';
+ $('dashboardSidebar').classList.toggle('seller-sidebar',isSeller);
+ const showroom=$('sidebarShowroom');
+ showroom.hidden=!isSeller;
+ if(isSeller)showroom.href=shopUrl();
  const menus=data.role==='admin'
  ?[['dashboard','Dashboard'],['shops','Seller & Shop Management'],['plans','Subscription Plans'],['payments','Payments']]
- :[['dashboard','Dashboard'],['profile','Shop Profile'],['categories','Product Categories'],['products','Products'],['catalogues','Catalogues'],['enquiries','Enquiry Inbox'],['analytics','Analytics'],['status','WhatsApp Status'],['public','Public Showroom'],['subscription','Subscription']];
+ :[['dashboard','Dashboard'],['profile','Shop Profile'],['products','Products'],['categories','Categories'],['catalogues','Catalogues'],['enquiries','Enquiry Inbox'],['analytics','Analytics'],['status','WhatsApp Status'],['subscription','Subscription']];
  $('sideNav').innerHTML=menus.map(([id,label])=>'<button class="side-link '+(view===id?'active':'')+'" data-nav="'+id+'" '+(view===id?'aria-current="page"':'')+'>'+sidebarIcon(id)+'<span>'+label+'</span></button>').join('');
  document.querySelectorAll('[data-nav]').forEach(n=>n.onclick=()=>navigateTo(n.dataset.nav));
 }
