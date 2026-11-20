@@ -240,7 +240,7 @@ function wireAnalytics(){
 function sellerDashboard(){
  const n=data.products.length,limit=data.free_product_limit;
  return ''
- +'<div class="stats">'+statLink('Products',n+' / '+limit,'blue','Free product allowance','products')+statLink('Categories',data.categories.length,'green','','categories')+statLink('Catalogues',data.catalogues.length,'amber','','catalogues')+statLink('Subscription','Free','purple','Paid plans coming later','subscription')+'</div>'
+ +'<div class="stats">'+statLink('Products',n+' / '+limit,'blue','Free product allowance','products')+statLink('Categories',data.categories.length,'green','','categories')+statLink('Catalogues',data.catalogues.length,'amber','','catalogues')+statLink('Subscription','Free','purple','','subscription')+'</div>'
  +'<div class="columns"><div>'+productsPanel(true)+'</div><div>'+panel('Public Showroom','<div class="preview-link">'+esc(shopUrl())+'</div><p>'+button('Copy Link','copyLink')+' <a class="btn primary sm" target="_blank" href="'+esc(shopUrl())+'">Open Shop ↗</a></p>')
  +'</div></div>';
 }
