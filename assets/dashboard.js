@@ -41,6 +41,8 @@ function nav(){
 
 function title(t){$('pageTitle').textContent=t;}
 function stat(name,value,klass='blue',hint=''){return '<div class="stat '+klass+'"><span>'+esc(name)+'</span><b>'+esc(value)+'</b><small>'+esc(hint)+'</small></div>'}
+function statLink(name,value,klass,hint,target){return '<a class="stat-link stat '+klass+'" href="#'+target+'" aria-label="Open '+esc(name)+'">'+
+ '<span>'+esc(name)+'</span><b>'+esc(value)+'</b><small>'+esc(hint)+'</small></a>';}
 function tdActions(edit,del){return '<div class="inline-actions">'+button('Edit',edit)+button('Delete',del,'danger')+'</div>'}
 function panel(heading,inside,extra=''){return '<section class="panel"><div class="panel-head"><h2>'+heading+'</h2>'+extra+'</div>'+inside+'</section>'}
 function sellerPanel(inside,extra=''){return '<section class="panel seller-panel">'+(extra?'<div class="seller-panel-actions">'+extra+'</div>':'')+inside+'</section>'}
@@ -238,7 +240,7 @@ function wireAnalytics(){
 function sellerDashboard(){
  const n=data.products.length,limit=data.free_product_limit;
  return ''
- +'<div class="stats">'+stat('Products',n+' / '+limit,'blue','Free product allowance')+stat('Categories',data.categories.length,'green')+stat('Catalogues',data.catalogues.length,'amber')+stat('Subscription','Free','purple','Paid plans coming later')+'</div>'
+ +'<div class="stats">'+statLink('Products',n+' / '+limit,'blue','Free product allowance','products')+statLink('Categories',data.categories.length,'green','','categories')+statLink('Catalogues',data.catalogues.length,'amber','','catalogues')+statLink('Subscription','Free','purple','Paid plans coming later','subscription')+'</div>'
  +'<div class="columns"><div>'+productsPanel(true)+'</div><div>'+panel('Public Showroom','<div class="preview-link">'+esc(shopUrl())+'</div><p>'+button('Copy Link','copyLink')+' <a class="btn primary sm" target="_blank" href="'+esc(shopUrl())+'">Open Shop ↗</a></p>')
  +'</div></div>';
 }
