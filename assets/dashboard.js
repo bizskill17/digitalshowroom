@@ -504,7 +504,7 @@ function adminDashboard(){
  const s=data.stats;
  const shops=adminShops().replace('<h2>Seller & Shop Management</h2>','<h2><a class="dashboard-section-link" href="#shops">Seller & Shop Management <span aria-hidden="true">↗</span></a></h2>');
  const plans=panel('Subscriptions','<p class="muted">Paid subscriptions and Razorpay are planned for the next development phase.</p>').replace('<h2>Subscriptions</h2>','<h2><a class="dashboard-section-link" href="#plans">Subscriptions <span aria-hidden="true">↗</span></a></h2>');
- return '<div class="stats">'+stat('Registered Sellers',s.sellers,'blue')+stat('Shops',s.shops,'green')+stat('Products',s.products,'amber')+stat('Free Product Limit',s.free_product_limit,'purple')+'</div><div class="columns"><div>'+shops+'</div><div>'+plans+'</div></div>';
+ return '<div class="stats">'+statLink('Registered Sellers',s.sellers,'blue','','shops')+statLink('Shops',s.shops,'green','','shops')+statLink('Products',s.products,'amber','','shops')+statLink('Free Product Limit',s.free_product_limit,'purple','','plans')+'</div><div class="columns"><div>'+shops+'</div><div>'+plans+'</div></div>';
 }
 function adminShops(showHeading=true){
  const rows=data.shops.map(s=>'<tr><td>'+esc(s.owner)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.products)+'</td><td><span class="pill '+(!+s.active?'off':'')+'">'+(+s.active?'Active':'Disabled')+'</span></td><td>'+button(+s.active?'Disable':'Enable','status-'+s.id+'-'+(+s.active?0:1),'outline')+' <a target="_blank" class="btn sm soft" href="/'+encodeURIComponent(s.slug)+'">View</a></td></tr>').join('');
