@@ -71,7 +71,7 @@ function enquiryMatches(e){
 }
 function enquiryTableRows(){
  const filtered=enquiryRecords.filter(enquiryMatches);
- $('enquiryResultCount').textContent=enquiryRecords.length?filtered.length+' of '+enquiryRecords.length+' enquiries':'';
+
  const tbody=$('enquiryTableBody');
  if(!tbody)return;
  if(!filtered.length){tbody.innerHTML='<tr><td colspan="6" class="placeholder">No matching enquiries.</td></tr>';return;}
@@ -120,7 +120,7 @@ function enquiryPanel(){
 
   '<button type="button" class="btn soft enquiry-clear" id="enquiryClearFilters">Clear</button>'+
  '</div>';
- const table='<div class="table-wrap"><table class="data-table enquiry-table"><thead><tr><th>Reference</th><th>Date</th><th>Type</th><th>Products</th><th>Amount</th><th>Customer</th></tr></thead><tbody id="enquiryTableBody"></tbody></table></div><div class="enquiry-table-summary"><span id="enquiryResultCount"></span></div>';
+ const table='<div class="table-wrap"><table class="data-table enquiry-table"><thead><tr><th>Reference</th><th>Date</th><th>Type</th><th>Products</th><th>Amount</th><th>Customer</th></tr></thead><tbody id="enquiryTableBody"></tbody></table></div>';
  const dialog='<dialog class="enquiry-details-dialog" id="enquiryDetailsDialog" aria-labelledby="enquiryDetailsTitle"><div class="enquiry-details-head"><h3 id="enquiryDetailsTitle"></h3><button type="button" class="enquiry-close" id="enquiryDetailsClose" aria-label="Close">×</button></div><p id="enquiryDetailsMeta" class="muted"></p><div class="table-wrap"><table class="data-table"><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody id="enquiryDetailsItems"></tbody></table></div><div class="enquiry-details-bottom"><strong id="enquiryDetailsTotal"></strong><button type="button" class="btn soft" id="enquiryDetailsDone">Close</button></div></dialog>';
  return '<section class="panel enquiry-inbox-panel">'+controls+table+dialog+'</section>';
 }
