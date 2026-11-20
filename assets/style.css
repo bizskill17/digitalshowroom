@@ -539,3 +539,37 @@ a.stat-link:focus-visible{outline:3px solid #0a63dc;outline-offset:3px}
  .shop-view[data-shop-theme=modern] .shop-header,
  .shop-view[data-shop-theme=minimal] .shop-header{padding:16px}
 }
+
+/* Approved 5 finishing refinements for seller storefront. */
+.shop-view{padding-bottom:max(125px,var(--shop-cart-space,125px))}
+.shop-view .shop-header,
+.shop-view[data-shop-theme=modern] .shop-header,
+.shop-view[data-shop-theme=minimal] .shop-header{padding-top:17px;padding-bottom:17px;min-height:108px}
+.shop-header-inner .shop-logo,.shop-logo-fallback{height:72px;width:72px;flex-basis:72px}
+.shop-view .shop-identity h1{font-size:clamp(25px,2.8vw,37px)}
+.shop-view .shop-products.shop-products-few{grid-template-columns:repeat(2,minmax(0,500px));justify-content:center;gap:24px}
+.shop-view .shop-products.shop-products-single{grid-template-columns:minmax(0,500px)}
+.shop-view .product-photo-display .product-main-photo{aspect-ratio:16/10;object-fit:contain;object-position:center;max-height:340px}
+.shop-view .shop-products-few .product-main-photo{aspect-ratio:16/10;max-height:330px}
+.shop-view .shop-product-placeholder{aspect-ratio:16/10;max-height:340px;min-height:165px;background:linear-gradient(135deg,#f9f9fb,#f0f0f3);color:#92929b;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;font-size:12px;font-weight:600;letter-spacing:.1px}
+.shop-view .shop-product-placeholder svg{width:54px;height:54px}
+.shop-view .shop-products-few .product-card .details{padding:15px 17px 18px}
+.shop-view .shop-products-few .product-card h3{font-size:18px}
+@media(max-width:790px){
+ .shop-view .shop-products.shop-products-few{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+ .shop-view .shop-products.shop-products-single{grid-template-columns:minmax(0,500px)}
+}
+@media(max-width:550px){
+ .shop-view{padding-bottom:max(155px,var(--shop-cart-space,155px))}
+ .shop-view .shop-header,
+ .shop-view[data-shop-theme=modern] .shop-header,
+ .shop-view[data-shop-theme=minimal] .shop-header{padding:13px 16px;min-height:0}
+ .shop-header-inner .shop-logo,.shop-logo-fallback{width:60px;height:60px;flex-basis:60px}
+ .shop-view .shop-products.shop-products-few{gap:10px}
+ .shop-view .shop-products.shop-products-single{grid-template-columns:minmax(0,500px)}
+ .shop-view .shop-products-few .product-card .details{padding:10px}
+ .shop-view .shop-products-few .product-card h3{font-size:14px}
+ .shop-view .shop-product-placeholder{min-height:120px}
+ .shop-view .shop-product-placeholder svg{width:39px;height:39px}
+ .shop-view .shop-product-placeholder span{font-size:10px}
+}
