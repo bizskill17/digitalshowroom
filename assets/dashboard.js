@@ -3,8 +3,34 @@ const $=id=>document.getElementById(id);
 let csrf='',user=null,data=null,view='dashboard';
 const sellerViews=['dashboard','profile','categories','products','catalogues','enquiries','analytics','status','public','subscription'];
 const adminViews=['dashboard','shops','plans','payments'];
+function closeMobileNav(){
+ const sidebar=$('dashboardSidebar'),toggle=$('mobileNavToggle'),backdrop=$('mobileNavBackdrop');
+ if(!sidebar)return;
+ sidebar.classList.remove('mobile-nav-open');
+ if(toggle){toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-label','Open navigation menu');}
+ if(backdrop)backdrop.hidden=true;
+ document.body.classList.remove('mobile-nav-lock');
+}
+function openMobileNav(){
+ const sidebar=$('dashboardSidebar'),toggle=$('mobileNavToggle'),backdrop=$('mobileNavBackdrop');
+ if(!sidebar||!toggle||!backdrop)return;
+ sidebar.classList.add('mobile-nav-open');
+ toggle.setAttribute('aria-expanded','true');toggle.setAttribute('aria-label','Close navigation menu');
+ backdrop.hidden=false;
+ document.body.classList.add('mobile-nav-lock');
+ sidebar.querySelector('.side-link.active,.side-link')?.focus({preventScroll:true});
+}
+function setupMobileNav(){
+ const toggle=$('mobileNavToggle'),backdrop=$('mobileNavBackdrop');
+ if(!toggle||!backdrop)return;
+ toggle.addEventListener('click',()=>document.getElementById('dashboardSidebar')?.classList.contains('mobile-nav-open')?closeMobileNav():openMobileNav());
+ backdrop.addEventListener('click',closeMobileNav);
+ window.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileNav()});
+ window.addEventListener('resize',()=>{if(window.innerWidth>800)closeMobileNav()});
+}
+setupMobileNav();
 function getViewFromUrl(){const key=decodeURIComponent(location.hash.slice(1));return (user?.role==='admin'?adminViews:sellerViews).includes(key)?key:'dashboard';}
-function navigateTo(next){view=next;if(location.hash!=='#'+next)history.pushState(null,'','#'+next);render();}
+function navigateTo(next){closeMobileNav();view=next;if(location.hash!=='#'+next)history.pushState(null,'','#'+next);render();}
 window.addEventListener('popstate',()=>{if(!data)return;view=getViewFromUrl();render();});
 window.addEventListener('hashchange',()=>{if(!data)return;const next=getViewFromUrl();if(next!==view){view=next;render();}});
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
