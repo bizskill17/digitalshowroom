@@ -646,10 +646,9 @@ function sellerSubscriptionPanel(){
  const info=sellerSubscriptionData,current=info.plans.find(p=>p.code==='free');
  const used=Number(info.product_usage)||0,limit=Number(info.free_product_limit)||0;
  const productAllowance=limit>0?used+' / '+limit:used+' / 0';
- const usagePercent=limit>0?Math.min(100,Math.round(used/limit*100)):100;
  const over=used>limit,atLimit=used>=limit;
  const usage='<div class="subscription-overview"><div class="subscription-metric"><span>Current Plan</span><strong>'+esc(current?.name||'Free')+'</strong></div>'+
- '<div class="subscription-metric"><span>Products Used</span><strong>'+esc(productAllowance)+'</strong><div class="subscription-progress" role="progressbar" aria-label="Products used" aria-valuemin="0" aria-valuemax="'+limit+'" aria-valuenow="'+Math.min(used,limit)+'"><span style="width:'+usagePercent+'%"></span></div>'+
+ '<div class="subscription-metric"><span>Products Used</span><strong>'+esc(productAllowance)+'</strong>'+
  (over?'<small class="subscription-limit-warning">Existing products are retained; new products are restricted by the Free plan limit.</small>':atLimit?'<small>Product limit reached</small>':'')+'</div>'+
  '<div class="subscription-metric"><span>Catalogues</span><strong>'+Number(info.catalogue_usage||0)+'</strong></div></div>';
  const names={analytics:'Analytics',whatsapp_status:'WhatsApp Status',catalogue_pdf:'Catalogue PDF',remove_branding:'Remove Showroom Branding'};
