@@ -665,7 +665,7 @@ function sellerSubscriptionPanel(){
    (enabledFeatures.length?'<p>'+enabledFeatures.map(esc).join(' · ')+'</p>':'')+'</div>'+
    '<div class="seller-plan-footer">'+(free?'<span>Currently active</span>':'<button type="button" class="btn soft" disabled>Upgrade Unavailable</button>')+'</div></div>';
  }).join('');
- return '<section class="panel subscription-panel seller-subscription-panel"><h2>My Subscription</h2>'+usage+
+ return '<section class="panel subscription-panel seller-subscription-panel">'+usage+
  '<h2 class="seller-plan-title">Available Plans</h2><div class="seller-plan-grid">'+plans+'</div>'+
  '</section>';
 }
