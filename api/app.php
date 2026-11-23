@@ -60,11 +60,19 @@ function setup(PDO $db):void{
   }
   catch(PDOException $e){if(($e->errorInfo[1]??null)!==1060)throw $e;}
  }
- $freeLimit=max(0,(int)$db->query("SELECT setting_value FROM ds_settings WHERE setting_key='free_product_limit'")->fetchColumn());
- $seed=$db->prepare("INSERT IGNORE INTO ds_subscription_plans
- (code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,photos_per_product,features_json,active,sort_order)
- VALUES(?,?,?,?,?,?,?,?,?,?,?)");
- $seed->execute(['free','Free','Starter showroom',0,0,$freeLimit,null,2,json_encode(['analytics'=>true,'whatsapp_status'=>true,'catalogue_pdf'=>false,'remove_branding'=>false],JSON_THROW_ON_ERROR),1,10]);
+ // Record initialization independently so deleting Free does not recreate it.
+ $db->beginTransaction();
+ try{
+  $initialized=$db->exec("INSERT IGNORE INTO ds_settings(setting_key,setting_value) VALUES ('subscription_free_initialized','1')");
+  if($initialized){
+   $freeLimit=max(0,(int)$db->query("SELECT setting_value FROM ds_settings WHERE setting_key='free_product_limit'")->fetchColumn());
+   $seed=$db->prepare("INSERT IGNORE INTO ds_subscription_plans
+   (code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,photos_per_product,features_json,active,sort_order)
+   VALUES(?,?,?,?,?,?,?,?,?,?,?)");
+   $seed->execute(['free','Free','Starter showroom',0,0,$freeLimit,null,2,json_encode(['analytics'=>true,'whatsapp_status'=>true,'catalogue_pdf'=>false,'remove_branding'=>false],JSON_THROW_ON_ERROR),1,10]);
+  }
+  $db->commit();
+ }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 
  // Add a per-shop brand colour without changing existing shop records.
  $brandColumn=$db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ds_shops' AND COLUMN_NAME='theme_color'");
@@ -371,13 +379,8 @@ try{
   if($action==='plan-delete'){
    $id=filter_var($d['id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
    if($id===false)respond(['error'=>'Invalid plan ID'],422);
-   $q=$db->prepare("DELETE FROM ds_subscription_plans WHERE id=? AND code<>'free'");
+   $q=$db->prepare('DELETE FROM ds_subscription_plans WHERE id=?');
    $q->execute([$id]);
-   if(!$q->rowCount()){
-    $q=$db->prepare("SELECT id FROM ds_subscription_plans WHERE id=? AND code='free'");
-    $q->execute([$id]);
-    if($q->fetchColumn())respond(['error'=>'The Free plan is required and cannot be deleted'],422);
-   }
    respond(['ok'=>true]);
   }
   if($action==='plan-save'){
