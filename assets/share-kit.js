@@ -24,23 +24,31 @@ function qrCanvas(url){
  finally{el.remove();}
 }
 async function draw(){
- if(!state.shop)return;const version=++state.generation,kind=state.type,[w,h]=sizes[kind],shop=state.shop;
+ const out=$('shareKitPreview');
+ if(!state.shop||!out)return;
+ state.canvas=null;
+ const actions=['shareKitDownload','shareKitPrint','shareKitEnlarge'].map($);
+ actions.forEach(button=>{button.disabled=true;});
+ note('Generating preview…');
+const version=++state.generation,kind=state.type,[w,h]=sizes[kind],shop=state.shop;
  const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');const [accent,pale]=palettes[state.style];
  x.fillStyle=pale;x.fillRect(0,0,w,h);
  const logo=state.logo?await img(shop.logo_url):null;
  const product=state.products.find(p=>String(p.id)===state.product)||state.products.find(p=>+p.active);
  const photo=kind==='social'?await img(product?.images?.[0]||product?.image_url):null;
- if(version!==state.generation)return;
+ if(version!==state.generation||out!==$('shareKitPreview'))return;
  const url=location.origin+'/'+encodeURIComponent(shop.slug);
  const qr=qrCanvas(url);
  if(kind==='poster'){
-   rect(x,0,0,w,265,0,accent);if(logo){rect(x,50,45,175,175,20,'#ffffff');contain(x,logo,62,57,150,150);}
-   text(x,shop.name,logo?620:540,105,logo?690:950,66,'#ffffff',800);
-   if(state.tagline&&shop.tagline)text(x,shop.tagline,540,218,950,32,'#ffffff',500);
-   rect(x,95,337,890,980,32,'#ffffff');
-   text(x,'SCAN & EXPLORE',540,435,800,61,accent,800);
-   x.drawImage(qr,255,525,570,570);
-   text(x,'Explore our digital showroom',540,1190,840,35,'#334155',600);
+   rect(x,0,0,w,212,0,accent);
+   if(logo){rect(x,55,38,130,130,18,'#ffffff');contain(x,logo,65,48,110,110);}
+   text(x,shop.name,logo?605:540,75,logo?770:950,58,'#ffffff',800);
+   if(state.tagline&&shop.tagline)text(x,shop.tagline,logo?605:540,172,logo?770:940,29,'#ffffff',500,'center',1);
+   rect(x,75,280,930,980,32,'#ffffff');
+   x.imageSmoothingEnabled=false;
+   x.drawImage(qr,240,415,600,600);
+   x.imageSmoothingEnabled=true;
+   text(x,'Scan to view our showroom',540,1125,850,49,accent,800);
    if(state.phone&&shop.phone)text(x,'WhatsApp: '+shop.phone,540,1335,940,36,accent,700);
    text(x,url,540,1415,980,27,'#334155',500);
  }else if(kind==='card'){
@@ -67,21 +75,32 @@ async function draw(){
  else if(kind==='card'){text(x,branding,954,642,415,18,accent,600);}
  else{text(x,branding,365,1060,680,20,'#64748b',600);}
  state.canvas=c;
- const out=$('shareKitPreview');if(out){out.replaceChildren();const picture=document.createElement('img');picture.src=c.toDataURL('image/png');picture.alt='Generated '+kind+' preview';picture.className='share-kit-preview-image';out.append(picture);}
- note('Preview ready. Your QR code opens your live showroom.');
+ const picture=document.createElement('img');
+ picture.src=c.toDataURL('image/png');
+ picture.alt='Generated '+kind+' preview';
+ picture.className='share-kit-preview-image';
+ out.replaceChildren(picture);
+ actions.forEach(button=>{button.disabled=false;});
+ note('');
 }
-function init(shop,products){state.shop=shop;state.products=products||[];state.product=String((products||[]).find(p=>+p.active)?.id||'');
- bind();draw().catch(e=>note(e.message,true));}
+function init(type,shop,products){
+ Object.assign(state,{type,shop,products:products||[],product:'',canvas:null});
+ bind();
+ draw().catch(e=>note(e.message,true));
+}
 function bind(){
- const tabButtons=document.querySelectorAll('[data-share-type]');
- for(const button of tabButtons)button.onclick=()=>{state.type=button.dataset.shareType;if(state.type==='status'){if(typeof window.showShareStatus==='function')window.showShareStatus();return;}refresh();};
- const template=$('shareKitStyle');if(template)template.onchange=()=>{state.style=template.value;draw().catch(e=>note(e.message,true));};
+ for(const input of document.querySelectorAll('[name="shareKitStyle"]')){
+  input.checked=input.value===state.style;
+  input.onchange=()=>{state.style=input.value;draw().catch(e=>note(e.message,true));};
+ }
+ $('shareKitEnlarge').onclick=()=>{
+  $('shareKitLargeImage').src=$('shareKitPreview').firstElementChild.src;
+  $('shareKitDialog').showModal();
+ };
  const product=$('shareKitProduct');if(product)product.onchange=()=>{state.product=product.value;draw().catch(e=>note(e.message,true));};
- for(const [id,key] of [['shareKitLogo','logo'],['shareKitPhone','phone'],['shareKitTagline','tagline']]){const e=$(id);if(e)e.onchange=()=>{state[key]=e.checked;draw().catch(err=>note(err.message,true));};}
- const refreshButton=$('shareKitGenerate');if(refreshButton)refreshButton.onclick=()=>draw().catch(e=>note(e.message,true));
- const png=$('shareKitDownload');if(png)png.onclick=()=>{if(!state.canvas)return note('Generate the design first.',true);state.canvas.toBlob(blob=>{if(!blob)return note('PNG export failed.',true);const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='digital-showroom-'+state.type+'-'+state.shop.slug+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);},'image/png');};
+ for(const [id,key] of [['shareKitLogo','logo'],['shareKitPhone','phone'],['shareKitTagline','tagline']]){const e=$(id);if(e){e.checked=state[key];e.onchange=()=>{state[key]=e.checked;draw().catch(err=>note(err.message,true));};}}
+ const png=$('shareKitDownload');if(png)png.onclick=()=>{if(!state.canvas)return note('Generate the design first.',true);const filename='digital-showroom-'+state.type+'-'+state.shop.slug+'.png';state.canvas.toBlob(blob=>{if(!blob)return note('PNG export failed.',true);const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);},'image/png');};
  const pdf=$('shareKitPrint');if(pdf)pdf.onclick=()=>{if(!state.canvas)return note('Generate the design first.',true);const win=window.open('','_blank');if(!win)return note('Allow pop-ups to save as PDF.',true);const url=state.canvas.toDataURL('image/png');win.document.write('<!doctype html><html><head><title>Share Kit - Print or Save PDF</title><style>@page{size:auto;margin:0}body{margin:0;display:grid;place-items:center}img{max-width:100%;max-height:99vh;object-fit:contain}</style></head><body><img src="'+url+'" onload="setTimeout(()=>window.print(),300)"></body></html>');win.document.close();};
 }
-function refresh(){document.querySelectorAll('[data-share-type]').forEach(b=>b.classList.toggle('active',b.dataset.shareType===state.type));const select=$('shareKitProductWrap');if(select)select.hidden=state.type!=='social';draw().catch(e=>note(e.message,true));}
-window.ShareKit={init,select:type=>{state.type=type;refresh();}};
+window.ShareKit={init};
 })();

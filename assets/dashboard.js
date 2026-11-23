@@ -535,20 +535,20 @@ function statusPanel(){
  '<div id="statusOutput" class="status-results"></div>');
 }
 function sharePanel(){
- const modes=[['poster','QR Poster','qr-code'],['card','Business Card','id-card'],['social','Social Media Post','image'],['status','WhatsApp Status','message-circle']];
- const tabs='<div class="share-kit-tabs">'+modes.map(([id,label])=>'<button type="button" data-do="share-'+id+'" class="share-kit-tab '+(shareMode===id?'active':'')+'">'+label+'</button>').join('')+'</div>';
- if(shareMode==='status')return sellerPanel('<h2>Share Kit</h2><p class="muted">Create product status images using the existing WhatsApp Status Maker.</p>'+tabs+statusPanel());
- const products=data.products.filter(p=>+p.active);
- const choices=products.map(p=>'<option value="'+Number(p.id)+'">'+esc(p.name)+'</option>').join('');
- const config='<div class="share-kit-config"><div class="field"><label for="shareKitStyle">Design Template</label><select id="shareKitStyle"><option value="classic">Classic</option><option value="modern">Modern</option><option value="minimal">Minimal</option></select></div>'+
- '<div id="shareKitProductWrap" class="field" '+(shareMode==='social'?'':'hidden')+'><label for="shareKitProduct">Select Product</label><select id="shareKitProduct">'+choices+'</select></div>'+
- '<label class="share-kit-check"><input id="shareKitLogo" type="checkbox" checked> Show Shop Logo</label>'+
- '<label class="share-kit-check"><input id="shareKitTagline" type="checkbox" checked> Show Tagline</label>'+
- '<label class="share-kit-check"><input id="shareKitPhone" type="checkbox" checked> Show WhatsApp Number</label>'+
- '<p class="muted">Digital Showroom branding is included on Free designs.</p>'+
- '<button type="button" class="btn primary" id="shareKitGenerate">Generate Preview</button></div>';
- const preview='<div class="share-kit-output"><div class="share-kit-preview" id="shareKitPreview" aria-label="Promotional image preview"></div><div id="shareKitMessage" class="muted" role="status" aria-live="polite">Generating preview...</div><div class="share-kit-actions"><button type="button" id="shareKitDownload" class="btn primary">Download PNG</button><button type="button" id="shareKitPrint" class="btn soft">Print / Save PDF</button></div></div>';
- return sellerPanel('<h2>Share Kit</h2><p class="muted">Create branded promotional materials for your showroom.</p>'+tabs+'<div class="share-kit-workspace">'+config+preview+'</div>');
+ const modes=[['poster','QR Poster','▦'],['card','Business Card','▤'],['social','Social Media Post','▧'],['status','WhatsApp Status','◉']];
+ const tabs='<div class="share-kit-tabs" role="group" aria-label="Design format">'+modes.map(([id,label,icon])=>'<button type="button" data-do="share-'+id+'" class="share-kit-tab '+(shareMode===id?'active':'')+'" aria-pressed="'+(shareMode===id)+'"><span aria-hidden="true">'+icon+'</span> '+label+'</button>').join('')+'</div>';
+ if(shareMode==='status')return tabs+statusPanel();
+ const choices=data.products.filter(p=>+p.active).map(p=>'<option value="'+Number(p.id)+'">'+esc(p.name)+'</option>').join('');
+ const templates=['Classic','Modern','Minimal'].map((label,index)=>'<label class="share-kit-template"><input type="radio" name="shareKitStyle" value="'+label.toLowerCase()+'" '+(index===0?'checked':'')+'><span><i aria-hidden="true"></i>'+label+'</span></label>').join('');
+ const config='<div class="share-kit-config"><fieldset><legend>Design Template</legend><div class="share-kit-templates">'+templates+'</div></fieldset>'+
+ (shareMode==='social'?'<div class="field"><label for="shareKitProduct">Select Product</label><select id="shareKitProduct">'+choices+'</select></div>':'')+
+ '<label class="share-kit-check"><input id="shareKitLogo" type="checkbox" role="switch" checked> Show Shop Logo</label>'+
+ '<label class="share-kit-check"><input id="shareKitTagline" type="checkbox" role="switch" checked> Show Tagline</label>'+
+ '<label class="share-kit-check"><input id="shareKitPhone" type="checkbox" role="switch" checked> Show WhatsApp Number</label>'+
+ '<p class="muted">Digital Showroom branding is included on Free designs.</p></div>';
+ const preview='<section class="share-kit-output"><div class="share-kit-preview-toolbar"><h2>Preview</h2><div class="inline-actions"><button type="button" id="shareKitPrint" class="btn sm soft" disabled>Print / Save PDF</button><button type="button" id="shareKitEnlarge" class="btn sm soft" disabled>Enlarge</button></div></div><div class="share-kit-preview" id="shareKitPreview"></div><div id="shareKitMessage" role="status" aria-live="polite">Generating preview…</div></section>';
+ const dialog='<dialog class="share-kit-dialog" id="shareKitDialog" aria-label="Enlarged design preview"><form method="dialog"><button class="btn sm soft" autofocus>Close</button></form><img id="shareKitLargeImage" alt="Enlarged promotional design"></dialog>';
+ return tabs+'<div class="share-kit-workspace">'+config+preview+'</div>'+dialog;
 }
 function adminDashboard(){
  const s=data.stats;
@@ -699,7 +699,15 @@ function render(){
    if(!sellerSubscriptionData&&!sellerSubscriptionLoading&&!sellerSubscriptionError)queueMicrotask(loadSellerSubscription);
   }
  }
- title(name);$('content').innerHTML=html;wireForms();
+ title(name);
+ const shareActions=$('shareKitHeaderActions');
+ const showShareActions=data.role==='seller'&&view==='share';
+ shareActions.hidden=!showShareActions;
+ shareActions.innerHTML=showShareActions
+  ?'<button type="button" class="btn soft" data-do="copyLink">Copy Shop Link</button>'+
+   (shareMode==='status'?'':'<button type="button" class="btn primary" id="shareKitDownload" disabled>Download PNG</button>')
+  :'';
+ $('content').innerHTML=html;wireForms();
  // Actions are delegated below so buttons added after render() remain clickable.
 }
 async function refresh(){data=await api('dashboard');if(!(data.role==='admin'?adminViews:sellerViews).includes(view))view='dashboard';render();}
@@ -790,7 +798,7 @@ function wireForms(){
  if(view==='plans'&&data?.role==='admin')wirePlans();
  if(view==='share'){
   if(shareMode==='status'&&window.StatusMaker)window.StatusMaker.init(data.shop,data.products);
-  else if(window.ShareKit){window.ShareKit.select(shareMode);window.ShareKit.init(data.shop,data.products);}
+  else if(window.ShareKit){window.ShareKit.init(shareMode,data.shop,data.products);}
  }
  if(view==='analytics')wireAnalytics();
 
