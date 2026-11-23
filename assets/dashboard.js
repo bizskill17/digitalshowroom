@@ -557,7 +557,7 @@ function adminDashboard(){
  return '<div class="stats">'+statLink('Registered Sellers',s.sellers,'blue','','shops')+statLink('Shops',s.shops,'green','','shops')+statLink('Products',s.products,'amber','','shops')+statLink('Free Product Limit',s.free_product_limit,'purple','','plans')+'</div><div class="columns"><div>'+shops+'</div><div>'+plans+'</div></div>';
 }
 function adminShops(showHeading=true){
- const rows=data.shops.map(s=>'<tr><td>'+esc(s.owner)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.products)+'</td><td><span class="pill '+(!+s.active?'off':'')+'">'+(+s.active?'Active':'Disabled')+'</span></td><td>'+button('Delete','delete-shop-'+s.id,'danger')+' <a target="_blank" class="btn sm soft" href="/'+encodeURIComponent(s.slug)+'">View</a></td></tr>').join('');
+ const rows=data.shops.map(s=>'<tr><td>'+esc(s.owner)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.products)+'</td><td><span class="pill '+(!+s.active?'off':'')+'">'+(+s.active?'Active':'Disabled')+'</span></td><td><a target="_blank" class="btn sm soft" href="/'+encodeURIComponent(s.slug)+'">View</a> '+button('Delete','delete-shop-'+s.id,'danger')+'</td></tr>').join('');
  return showHeading?panel('Seller & Shop Management',wrapTable(['Seller','Shop','Products','Status','Actions'],rows)):sellerPanel(wrapTable(['Seller','Shop','Products','Status','Actions'],rows));
 }
 let planRecords=[],plansLoaded=false,plansLoading=false,plansError='',planEditing=null;
