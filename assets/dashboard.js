@@ -659,7 +659,7 @@ function sellerSubscriptionPanel(){
   const catalogueLimit=p.catalogue_limit===null?'Unlimited':Number(p.catalogue_limit);
   const enabledFeatures=Object.entries(names).filter(([key])=>p.features?.[key]===true).map(([,label])=>label);
   return '<div class="seller-plan-card '+(free?'seller-plan-current':'')+'"><div class="seller-plan-head"><h3>'+esc(p.name)+'</h3>'+(free?'<span class="seller-plan-state current">Current Plan</span>':'<span class="seller-plan-state">Coming Soon</span>')+'</div>'+
-   (p.description?'<p class="seller-plan-description">'+esc(p.description)+'</p>':'')+
+   (!free&&p.code!=='pro'&&p.description?'<p class="seller-plan-description">'+esc(p.description)+'</p>':'')+
    '<div class="seller-plan-pricing"><div><small>Monthly</small><strong>'+esc(priceMonthly)+'</strong></div><div><small>Annual</small><strong>'+esc(priceAnnual)+'</strong></div></div>'+
    '<div class="seller-plan-features"><div><span>Products</span><strong>'+esc(productLimit)+'</strong></div><div><span>Catalogues</span><strong>'+esc(catalogueLimit)+'</strong></div>'+
    (enabledFeatures.length?'<p>'+enabledFeatures.map(esc).join(' · ')+'</p>':'')+'</div>'+
