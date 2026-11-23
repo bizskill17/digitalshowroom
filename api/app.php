@@ -481,13 +481,14 @@ try{
   respond(['ok'=>true]);
  }
  if($action==='shop'){
-  $name=clean($d['name']??'');$tagline=clean($d['tagline']??'',255);$phone=preg_replace('/\D/','',(string)($d['phone']??''));$address=clean($d['address']??'',255);$logo=clean($d['logo_url']??'',500);
+  $name=clean($d['name']??'');$tagline=clean($d['tagline']??'',255);$phone=$d['phone']??null;$address=clean($d['address']??'',255);$logo=clean($d['logo_url']??'',500);
   $palette=['#E83F7E','#1D4ED8','#0F766E','#6D28D9','#9A3412','#334155'];
   $theme=strtoupper(clean($d['theme_color']??'#E83F7E',7));
   if(!in_array($theme,$palette,true))respond(['error'=>'Choose a valid shop colour'],422);
   $ownerName=array_key_exists('owner_name',$d)?clean($d['owner_name'],150):$u['name'];
   if(!$ownerName)respond(['error'=>'Your Name is required'],422);
-  if(!$name||strlen($phone)<10||strlen($phone)>15||($logo&&!preg_match('~^https?://~i',$logo)&&!str_starts_with($logo,'/uploads/')))respond(['error'=>'Enter valid shop details'],422);
+  if(!is_string($phone)||!preg_match('/\A[0-9]{10}\z/',$phone))respond(['error'=>'Enter a 10-digit WhatsApp number'],422);
+  if(!$name||($logo&&!preg_match('~^https?://~i',$logo)&&!str_starts_with($logo,'/uploads/')))respond(['error'=>'Enter valid shop details'],422);
   $db->beginTransaction();
   try{
    $q=$db->prepare('UPDATE ds_shops SET name=?,tagline=?,phone=?,address=?,logo_url=?,theme_color=? WHERE id=? AND user_id=?');
