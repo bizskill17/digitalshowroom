@@ -65,7 +65,6 @@ function setup(PDO $db):void{
  (code,name,description,monthly_price,annual_price,product_limit,catalogue_limit,photos_per_product,features_json,active,sort_order)
  VALUES(?,?,?,?,?,?,?,?,?,?,?)");
  $seed->execute(['free','Free','Starter showroom',0,0,$freeLimit,null,2,json_encode(['analytics'=>true,'whatsapp_status'=>true,'catalogue_pdf'=>false,'remove_branding'=>false],JSON_THROW_ON_ERROR),1,10]);
- $seed->execute(['pro','Pro','Paid plan setup pending',0,0,null,null,6,json_encode(['analytics'=>true,'whatsapp_status'=>true,'catalogue_pdf'=>false,'remove_branding'=>false],JSON_THROW_ON_ERROR),0,20]);
 
  // Add a per-shop brand colour without changing existing shop records.
  $brandColumn=$db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ds_shops' AND COLUMN_NAME='theme_color'");
@@ -368,6 +367,18 @@ try{
    if($q->rowCount()!==1)respond(['error'=>'Password could not be updated. Please try again.'],409);
    session_regenerate_id(true);
    respond(['ok'=>true,'message'=>'Password updated successfully.']);
+  }
+  if($action==='plan-delete'){
+   $id=filter_var($d['id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+   if($id===false)respond(['error'=>'Invalid plan ID'],422);
+   $q=$db->prepare("DELETE FROM ds_subscription_plans WHERE id=? AND code<>'free'");
+   $q->execute([$id]);
+   if(!$q->rowCount()){
+    $q=$db->prepare("SELECT id FROM ds_subscription_plans WHERE id=? AND code='free'");
+    $q->execute([$id]);
+    if($q->fetchColumn())respond(['error'=>'The Free plan is required and cannot be deleted'],422);
+   }
+   respond(['ok'=>true]);
   }
   if($action==='plan-save'){
    $id=filter_var($d['id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);

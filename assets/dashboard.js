@@ -571,7 +571,7 @@ function adminPlans(){
   return '<tr><td><strong>'+esc(p.name)+'</strong></td>'+
   '<td>₹'+monthly+'</td><td>₹'+annual+'</td><td>'+esc(planText(p.product_limit))+'</td>'+
   '<td>'+esc(planText(p.catalogue_limit))+'</td><td><span class="pill '+(!Number(p.active)?'off':'')+'">'+(Number(p.active)?'Active':'Inactive')+'</span></td>'+
-  '<td><button class="btn sm soft" type="button" data-edit-plan="'+Number(p.id)+'">Edit</button></td></tr>';
+  '<td><button class="btn sm soft" type="button" data-edit-plan="'+Number(p.id)+'">Edit</button> '+(p.code==='free'?'':button('Delete','delete-plan-'+p.id,'danger'))+'</td></tr>';
  }).join('');
  const table='<div class="table-wrap"><table class="data-table plan-master-table"><thead><tr><th>Plan</th><th>Monthly (₹)</th><th>Annual (₹)</th><th>Products</th><th>Catalogues</th><th>Status</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
  return '<section class="panel plan-master-panel"><div class="panel-head plan-master-actions"><button class="btn primary" type="button" id="addPlan">+ Add Plan</button></div>'+table+'<dialog class="plan-editor-dialog" id="planEditorDialog" aria-labelledby="planEditorTitle"><div id="planEditorArea"></div></dialog>'+
@@ -893,6 +893,17 @@ async function doAction(action){
  if(action==='new-catalogue'||action.startsWith('edit-catalogue-')){$('content').innerHTML=catalogueForm(action==='new-catalogue'?0:+action.split('-').pop());wireForms();return;}
  const m=action.match(/^delete-(product|category|catalogue)-(\d+)$/);
  if(m){if(!confirm('Delete this '+m[1]+'? This action cannot be undone.'))return;await post(m[1]+'-delete',{id:+m[2]},'Deleted');return;}
+ const planDelete=action.match(/^delete-plan-(\d+)$/);
+ if(planDelete){
+  const plan=planRecords.find(p=>String(p.id)===planDelete[1]);
+  if(!plan||plan.code==='free'||!confirm('Delete the "'+plan.name+'" plan? This cannot be undone.'))return;
+  try{
+   await api('plan-delete',{id:planDelete[1]});
+   await loadPlans();
+   flash('Plan deleted');
+  }catch(error){flash(error.message,true);}
+  return;
+ }
  const shopDelete=action.match(/^delete-shop-(\d+)$/);
  if(shopDelete){
   const shop=data.shops.find(s=>String(s.id)===shopDelete[1]);
