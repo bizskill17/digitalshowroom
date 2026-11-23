@@ -15,10 +15,10 @@ function checkCsrf():void{if(!hash_equals($_SESSION['csrf']??'',$_SERVER['HTTP_X
 function signedIn():int{$id=(int)($_SESSION['user_id']??0);if(!$id)respond(['error'=>'Please sign in'],401);return $id;}
 function currentUser(PDO $db):?array{
  if(empty($_SESSION['user_id']))return null;
- $q=$db->prepare('SELECT id,name,email,role FROM ds_users WHERE id=?');$q->execute([$_SESSION['user_id']]);return $q->fetch()?:null;
+ $q=$db->prepare('SELECT id,name,email,role FROM ds_users u WHERE id=? AND NOT EXISTS (SELECT 1 FROM ds_shops s WHERE s.user_id=u.id AND s.active=-1)');$q->execute([$_SESSION['user_id']]);return $q->fetch()?:null;
 }
 function shopFor(PDO $db,int $userId):array{
- $q=$db->prepare('SELECT * FROM ds_shops WHERE user_id=? LIMIT 1');$q->execute([$userId]);$shop=$q->fetch();if(!$shop)respond(['error'=>'Shop not found'],404);return $shop;
+ $q=$db->prepare('SELECT * FROM ds_shops WHERE user_id=? AND active>=0 LIMIT 1');$q->execute([$userId]);$shop=$q->fetch();if(!$shop)respond(['error'=>'Shop not found'],404);return $shop;
 }
 function clean($v,int $max=160):string{return mb_substr(trim((string)($v??'')),0,$max);}
 function setup(PDO $db):void{
@@ -231,8 +231,8 @@ try{
   }
   if($action==='dashboard'){
    if($u['role']==='admin'){
-    $counts=['sellers'=>(int)$db->query("SELECT COUNT(*) FROM ds_users WHERE role='seller'")->fetchColumn(),'shops'=>(int)$db->query('SELECT COUNT(*) FROM ds_shops')->fetchColumn(),'products'=>(int)$db->query('SELECT COUNT(*) FROM ds_products')->fetchColumn(),'free_product_limit'=>quota($db)];
-    $recent=$db->query('SELECT s.id,s.name,s.slug,s.active,s.created_at,u.name AS owner,u.email,(SELECT COUNT(*) FROM ds_products p WHERE p.shop_id=s.id) AS products FROM ds_shops s JOIN ds_users u ON u.id=s.user_id ORDER BY s.id DESC LIMIT 100')->fetchAll();
+    $counts=['sellers'=>(int)$db->query("SELECT COUNT(*) FROM ds_users u WHERE role='seller' AND NOT EXISTS (SELECT 1 FROM ds_shops s WHERE s.user_id=u.id AND s.active=-1)")->fetchColumn(),'shops'=>(int)$db->query('SELECT COUNT(*) FROM ds_shops WHERE active>=0')->fetchColumn(),'products'=>(int)$db->query('SELECT COUNT(*) FROM ds_products p JOIN ds_shops s ON s.id=p.shop_id WHERE s.active>=0')->fetchColumn(),'free_product_limit'=>quota($db)];
+    $recent=$db->query('SELECT s.id,s.name,s.slug,s.active,s.created_at,u.name AS owner,u.email,(SELECT COUNT(*) FROM ds_products p WHERE p.shop_id=s.id) AS products FROM ds_shops s JOIN ds_users u ON u.id=s.user_id WHERE s.active>=0 ORDER BY s.id DESC LIMIT 100')->fetchAll();
     respond(['role'=>'admin','stats'=>$counts,'shops'=>$recent]);
    }
    $shop=shopFor($db,(int)$u['id']);
@@ -331,7 +331,7 @@ try{
  }
  if($action==='login'||$action==='admin-login'){
   $d=body();
-  $q=$db->prepare('SELECT id,pass_hash,role FROM ds_users WHERE email=?');
+  $q=$db->prepare('SELECT id,pass_hash,role FROM ds_users u WHERE email=? AND NOT EXISTS (SELECT 1 FROM ds_shops s WHERE s.user_id=u.id AND s.active=-1)');
   $q->execute([strtolower(clean($d['email']??'',190))]);
   $row=$q->fetch();
   if(!$row||!password_verify((string)($d['password']??''),$row['pass_hash']))respond(['error'=>'Invalid email or password'],401);
@@ -440,8 +440,21 @@ try{
    }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
    respond(['ok'=>true]);
   }
+  if($action==='shop-delete'){
+   $id=filter_var($d['id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+   if($id===false)respond(['error'=>'Invalid shop ID'],422);
+   // A deleted shop keeps its data and reserved link for recovery.
+   $q=$db->prepare("UPDATE ds_shops s JOIN ds_users u ON u.id=s.user_id SET s.active=-1 WHERE s.id=? AND s.active>=0 AND u.role='seller'");
+   $q->execute([$id]);
+   if(!$q->rowCount()){
+    $q=$db->prepare("SELECT s.id FROM ds_shops s JOIN ds_users u ON u.id=s.user_id WHERE s.id=? AND s.active=-1 AND u.role='seller'");
+    $q->execute([$id]);
+    if(!$q->fetchColumn())respond(['error'=>'Shop not found'],404);
+   }
+   respond(['ok'=>true]);
+  }
   if($action==='shop-status'){
-   $q=$db->prepare('UPDATE ds_shops SET active=? WHERE id=?');$q->execute([!empty($d['active'])?1:0,(int)($d['id']??0)]);respond(['ok'=>true]);
+   $q=$db->prepare('UPDATE ds_shops SET active=? WHERE id=? AND active>=0');$q->execute([!empty($d['active'])?1:0,(int)($d['id']??0)]);respond(['ok'=>true]);
   }
   respond(['error'=>'Unsupported admin operation'],403);
  }

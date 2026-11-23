@@ -557,7 +557,7 @@ function adminDashboard(){
  return '<div class="stats">'+statLink('Registered Sellers',s.sellers,'blue','','shops')+statLink('Shops',s.shops,'green','','shops')+statLink('Products',s.products,'amber','','shops')+statLink('Free Product Limit',s.free_product_limit,'purple','','plans')+'</div><div class="columns"><div>'+shops+'</div><div>'+plans+'</div></div>';
 }
 function adminShops(showHeading=true){
- const rows=data.shops.map(s=>'<tr><td>'+esc(s.owner)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.products)+'</td><td><span class="pill '+(!+s.active?'off':'')+'">'+(+s.active?'Active':'Disabled')+'</span></td><td>'+button(+s.active?'Disable':'Enable','status-'+s.id+'-'+(+s.active?0:1),'outline')+' <a target="_blank" class="btn sm soft" href="/'+encodeURIComponent(s.slug)+'">View</a></td></tr>').join('');
+ const rows=data.shops.map(s=>'<tr><td>'+esc(s.owner)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.products)+'</td><td><span class="pill '+(!+s.active?'off':'')+'">'+(+s.active?'Active':'Disabled')+'</span></td><td>'+button('Delete','delete-shop-'+s.id,'danger')+' <a target="_blank" class="btn sm soft" href="/'+encodeURIComponent(s.slug)+'">View</a></td></tr>').join('');
  return showHeading?panel('Seller & Shop Management',wrapTable(['Seller','Shop','Products','Status','Actions'],rows)):sellerPanel(wrapTable(['Seller','Shop','Products','Status','Actions'],rows));
 }
 let planRecords=[],plansLoaded=false,plansLoading=false,plansError='',planEditing=null;
@@ -893,8 +893,13 @@ async function doAction(action){
  if(action==='new-catalogue'||action.startsWith('edit-catalogue-')){$('content').innerHTML=catalogueForm(action==='new-catalogue'?0:+action.split('-').pop());wireForms();return;}
  const m=action.match(/^delete-(product|category|catalogue)-(\d+)$/);
  if(m){if(!confirm('Delete this '+m[1]+'? This action cannot be undone.'))return;await post(m[1]+'-delete',{id:+m[2]},'Deleted');return;}
- const st=action.match(/^status-(\d+)-(0|1)$/);
- if(st){await post('shop-status',{id:+st[1],active:st[2]==='1'},'Shop status updated');return;}
+ const shopDelete=action.match(/^delete-shop-(\d+)$/);
+ if(shopDelete){
+  const shop=data.shops.find(s=>String(s.id)===shopDelete[1]);
+  if(!shop||!confirm('Delete "'+shop.name+'"? The showroom link and seller login will stop working. Shop data is retained for recovery.'))return;
+  await post('shop-delete',{id:shopDelete[1]},'Shop deleted');
+  return;
+ }
  if(action==='generate-status'){generateStatus();return;}
 }
 window.showShareStatus=()=>{shareMode='status';render();};

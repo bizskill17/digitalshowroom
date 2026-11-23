@@ -16,7 +16,7 @@ $file=$_FILES['image'];
 if($file['error']!==UPLOAD_ERR_OK||$file['size']>5*1024*1024||$file['size']<1)reply(['error'=>'Image must be at most 5 MB'],422);
 try{
  $db=showroomDatabase();
- $stmt=$db->prepare('SELECT id FROM ds_shops WHERE user_id=?');
+ $stmt=$db->prepare('SELECT id FROM ds_shops WHERE user_id=? AND active>=0');
  $stmt->execute([(int)$_SESSION['user_id']]);
  $sid=(int)$stmt->fetchColumn();
  if(!$sid)reply(['error'=>'Shop not found'],404);
